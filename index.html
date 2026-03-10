@@ -1,917 +1,1238 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { BookOpen, Calculator, FileText, GraduationCap, Home, Plus, Save, Search, Trash2, Building2, BrainCircuit, CheckCircle2 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-
-const seedTerms = [
-  {
-    id: 1,
-    category: "법인세",
-    term: "손금불산입",
-    definition: "회계상 비용으로 처리되었지만 세법상 비용으로 인정되지 않아 과세소득에 더하는 조정입니다.",
-    examTip: "접대비 한도초과, 업무무관비용, 가지급금 인정이자 등과 함께 자주 출제됩니다.",
-    practical: "실무에서는 세무조정명세서에서 가산조정으로 반영합니다.",
-    gptPrompt: "손금불산입을 초보자도 이해할 수 있게 설명하고 시험 예시 1개와 실무 예시 1개를 보여줘."
-  },
-  {
-    id: 2,
-    category: "법인세",
-    term: "익금불산입",
-    definition: "회계상 수익으로 잡혔지만 세법상 과세하지 않는 항목을 빼는 조정입니다.",
-    examTip: "수입배당금 익금불산입, 국고보조금 등과 연결해서 정리하면 좋습니다.",
-    practical: "세무조정 시 차감조정으로 반영하며 유보/기타 사외유출 구분을 함께 확인해야 합니다.",
-    gptPrompt: "익금불산입과 손금산입의 차이를 시험형 예시로 설명해줘."
-  },
-  {
-    id: 3,
-    category: "부가가치세",
-    term: "매입세액불공제",
-    definition: "세금계산서를 수취했더라도 법에서 공제하지 않는 매입세액입니다.",
-    examTip: "접대비 관련 지출, 비영업용 소형승용차 관련 매입세액 등이 대표적입니다.",
-    practical: "전표 입력 단계에서 공제/불공제 구분을 잘못하면 신고서 전체가 틀어질 수 있습니다.",
-    gptPrompt: "매입세액불공제 사례를 시험용과 실무용으로 각각 설명해줘."
-  },
-  {
-    id: 4,
-    category: "재무회계",
-    term: "감가상각",
-    definition: "유형자산의 취득원가를 사용기간에 걸쳐 비용으로 배분하는 회계처리입니다.",
-    examTip: "정액법, 정률법, 내용연수, 잔존가치, 월할계산을 함께 정리하세요.",
-    practical: "실무에서는 회계상 감가상각과 세법상 한도 차이로 세무조정이 자주 발생합니다.",
-    gptPrompt: "감가상각을 분개와 세무조정까지 포함해 쉽게 설명해줘."
-  },
-  {
-    id: 5,
-    category: "원천세",
-    term: "근로소득 간이세액",
-    definition: "급여 지급 시 근로소득에 대해 간이세액표에 따라 원천징수하는 세액입니다.",
-    examTip: "총급여, 비과세, 공제대상 인원과 연결해 정리하면 좋습니다.",
-    practical: "급여대장과 원천징수이행상황신고서가 맞는지 반드시 검증해야 합니다.",
-    gptPrompt: "근로소득 간이세액을 아주 쉽게 설명하고 실무 체크포인트를 알려줘."
-  }
-];
-
-const seedAdjustments = [
-  { id: 1, section: "손금불산입", name: "접대비 한도초과", type: "가산", defaultMemo: "한도 초과액은 손금불산입" },
-  { id: 2, section: "손금불산입", name: "업무무관비용", type: "가산", defaultMemo: "업무 관련성 검토 필요" },
-  { id: 3, section: "손금불산입", name: "가지급금 인정이자", type: "가산", defaultMemo: "업무무관 가지급금 여부 확인" },
-  { id: 4, section: "익금불산입", name: "수입배당금 익금불산입", type: "차감", defaultMemo: "배당수익 비과세 조정" },
-  { id: 5, section: "손금산입", name: "이월결손금 공제", type: "차감", defaultMemo: "공제한도 검토" },
-  { id: 6, section: "손금불산입", name: "감가상각비 한도초과", type: "가산", defaultMemo: "세법상 한도 초과분" },
-  { id: 7, section: "손금불산입", name: "대손충당금 한도초과", type: "가산", defaultMemo: "세법상 설정한도 초과분" },
-  { id: 8, section: "손금불산입", name: "기부금 한도초과", type: "가산", defaultMemo: "손금산입 한도 검토" },
-  { id: 9, section: "익금산입", name: "자산수증이익", type: "가산", defaultMemo: "무상수증 관련 수익 반영" },
-  { id: 10, section: "익금불산입", name: "국고보조금", type: "차감", defaultMemo: "압축기장충당금과 연계 검토" }
-];
-
-const seedAccounts = [
-  "현금",
-  "보통예금",
-  "외상매출금",
-  "상품",
-  "매출",
-  "매출원가",
-  "급여",
-  "임차료",
-  "접대비",
-  "광고선전비",
-  "복리후생비",
-  "비품",
-  "감가상각비",
-  "미지급금",
-  "미수금",
-  "부가세대급금",
-  "부가세예수금"
-];
-
-const seedQuestions = [
-  { id: 1, year: 2020, category: "세무조정", question: "접대비 한도초과액은 세무조정 시 어떻게 처리하는가?", options: ["손금산입", "익금불산입", "손금불산입", "익금산입"], answer: 2, explanation: "접대비 한도초과액은 세법상 비용으로 인정되지 않으므로 손금불산입(가산조정)이다." },
-  { id: 2, year: 2021, category: "부가가치세", question: "비영업용 소형승용차 관련 매입세액은 어떻게 처리하는가?", options: ["전액 공제", "전액 불공제", "50% 공제", "예정신고만 공제"], answer: 1, explanation: "비영업용 소형승용차 관련 매입세액은 원칙적으로 공제되지 않는다." },
-  { id: 3, year: 2022, category: "재무회계", question: "감가상각의 본질적 목적은 무엇인가?", options: ["현금관리", "자산원가의 기간배분", "세금감면", "부채감소"], answer: 1, explanation: "감가상각은 자산 취득원가를 사용기간 동안 비용으로 배분하는 것이다." },
-  { id: 4, year: 2023, category: "세무조정", question: "대손충당금 한도초과액은 어떻게 조정하는가?", options: ["손금산입", "익금산입", "손금불산입", "익금불산입"], answer: 2, explanation: "세법상 인정한도를 초과한 충당금은 손금불산입 처리한다." },
-  { id: 5, year: 2024, category: "부가가치세", question: "면세사업 관련 매입세액은 어떻게 처리하는가?", options: ["공제", "불공제", "50% 공제", "이월"], answer: 1, explanation: "면세사업 관련 매입세액은 매출세액에서 공제할 수 없다." },
-  { id: 6, year: 2025, category: "재무회계", question: "다음 중 자산계정에 해당하는 것은 무엇인가?", options: ["매출", "외상매출금", "급여", "이자수익"], answer: 1, explanation: "외상매출금은 자산 계정이다." },
-  { id: 7, year: 2026, category: "세무조정", question: "감가상각비 세법상 한도초과액의 처분은 일반적으로 무엇인가?", options: ["유보", "사외유출", "기타", "익금"], answer: 0, explanation: "감가상각비 한도초과는 유보 처분으로 다음연도 환입 대상이 된다." }
-];
-
-const initialCompany = {
-  name: "샘플회사",
-  ceo: "홍길동",
-  bizNo: "123-45-67890",
-  year: "2026"
-};
-
-function currency(n) {
-  return Number(n || 0).toLocaleString("ko-KR");
-}
-
-function load(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function App() {
-  const [tab, setTab] = useState("dashboard");
-  const [company, setCompany] = useState(initialCompany);
-  const [terms, setTerms] = useState(seedTerms);
-  const [termSearch, setTermSearch] = useState("");
-  const [entries, setEntries] = useState([]);
-  const [newEntry, setNewEntry] = useState({ date: "2026-03-10", description: "", debit: "", credit: "", amount: "", vatType: "과세" });
-  const [adjustments, setAdjustments] = useState([]);
-  const [selectedAdjustment, setSelectedAdjustment] = useState(seedAdjustments[0].name);
-  const [adjustmentAmount, setAdjustmentAmount] = useState("");
-  const [adjustmentMemo, setAdjustmentMemo] = useState(seedAdjustments[0].defaultMemo);
-  const [bookProfit, setBookProfit] = useState("");
-  const [salesTax, setSalesTax] = useState("");
-  const [purchaseTax, setPurchaseTax] = useState("");
-  const [vatNonDeductible, setVatNonDeductible] = useState("");
-  const [vatSales, setVatSales] = useState([]);
-  const [vatPurchases, setVatPurchases] = useState([]);
-  const [newVatSale, setNewVatSale] = useState({ date: "2026-03-10", client: "", supplyAmount: "", taxAmount: "" });
-  const [newVatPurchase, setNewVatPurchase] = useState({ date: "2026-03-10", vendor: "", supplyAmount: "", taxAmount: "", deductible: "공제", reason: "" });
-  const [quizIndex, setQuizIndex] = useState(0);
-
-  // 하루 3문제 랜덤 선택
-  const dailyQuestions = useMemo(() => {
-    const today = new Date().toISOString().slice(0,10);
-    const seed = today.split("-").join("");
-    const shuffled = [...seedQuestions].sort((a,b)=>{
-      const v = (a.id * seed) % 97;
-      const w = (b.id * seed) % 97;
-      return v - w;
-    });
-    return shuffled.slice(0,3);
-  }, []);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [quizResults, setQuizResults] = useState([]);
-  const [savedAt, setSavedAt] = useState("");
-
-  useEffect(() => {
-    const saved = load("taxAppState_v1", null);
-    if (saved) {
-      setCompany(saved.company || initialCompany);
-      setTerms(saved.terms || seedTerms);
-      setEntries(saved.entries || []);
-      setAdjustments(saved.adjustments || []);
-      setBookProfit(saved.bookProfit || "");
-      setSalesTax(saved.salesTax || "");
-      setPurchaseTax(saved.purchaseTax || "");
-      setVatNonDeductible(saved.vatNonDeductible || "");
-      setVatSales(saved.vatSales || []);
-      setVatPurchases(saved.vatPurchases || []);
-      setQuizResults(saved.quizResults || []);
-      setSavedAt(saved.savedAt || "");
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>전산세무회계 학습 앱</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background: #f6f8fb;
+      color: #1f2937;
     }
-  }, []);
+    .app {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+    .sidebar {
+      background: #111827;
+      color: white;
+      padding: 20px;
+    }
+    .brand {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .sub {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .company-box {
+      background: rgba(255,255,255,0.08);
+      padding: 12px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .nav button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: white;
+      padding: 12px 14px;
+      text-align: left;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+    .nav button.active {
+      background: #2563eb;
+    }
+    .nav button:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .side-actions {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .side-actions button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-save { background: #10b981; color: white; }
+    .btn-reset { background: #e5e7eb; color: #111827; }
 
-  const saveAll = () => {
-    const payload = {
-      company,
-      terms,
-      entries,
-      adjustments,
-      bookProfit,
-      salesTax,
-      purchaseTax,
-      vatNonDeductible,
-      vatSales,
-      vatPurchases,
-      quizResults,
-      savedAt: new Date().toLocaleString("ko-KR")
-    };
-    localStorage.setItem("taxAppState_v1", JSON.stringify(payload));
-    setSavedAt(payload.savedAt);
-  };
+    .content {
+      padding: 22px;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
 
-  const resetAll = () => {
-    localStorage.removeItem("taxAppState_v1");
-    window.location.reload();
-  };
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+      border: 1px solid #eef2f7;
+    }
+    .card h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+    .stat-title {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+    .muted {
+      color: #64748b;
+      font-size: 13px;
+    }
 
-  const filteredTerms = useMemo(() => {
-    return terms.filter((t) => [t.term, t.definition, t.category].join(" ").toLowerCase().includes(termSearch.toLowerCase()));
-  }, [terms, termSearch]);
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 12px;
+    }
+    .form-grid-1 {
+      display: grid;
+      gap: 12px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 12px 13px;
+      border: 1px solid #dbe3ee;
+      border-radius: 12px;
+      font-size: 14px;
+      background: white;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    .btn {
+      border: 0;
+      background: #2563eb;
+      color: white;
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+    .btn.danger {
+      background: #ef4444;
+      color: white;
+    }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
 
-  const totals = useMemo(() => {
-    const plus = adjustments.filter((a) => a.type === "가산").reduce((sum, a) => sum + Number(a.amount || 0), 0);
-    const minus = adjustments.filter((a) => a.type === "차감").reduce((sum, a) => sum + Number(a.amount || 0), 0);
-    const taxableIncome = Number(bookProfit || 0) + plus - minus;
-    return { plus, minus, taxableIncome };
-  }, [adjustments, bookProfit]);
+    .list-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .list-main {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eff6ff;
+      color: #1d4ed8;
+      margin-right: 6px;
+    }
+    .badge.gray {
+      background: #f1f5f9;
+      color: #334155;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #eef2f7;
+      text-align: left;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    th {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 700;
+    }
+    td.right, th.right {
+      text-align: right;
+    }
 
-  const fsSummary = useMemo(() => {
-    const debitTotal = entries.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const sales = entries.filter((e) => e.credit === "매출").reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const expenseAccounts = ["급여", "임차료", "접대비", "광고선전비", "복리후생비", "감가상각비"];
-    const expenses = entries.filter((e) => expenseAccounts.includes(e.debit)).reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const assets = entries.filter((e) => ["현금", "보통예금", "외상매출금", "상품", "비품", "부가세대급금", "미수금"].includes(e.debit)).reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const liabilities = entries.filter((e) => ["미지급금", "부가세예수금"].includes(e.credit)).reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    return { debitTotal, sales, expenses, assets, liabilities, estimatedProfit: sales - expenses };
-  }, [entries]);
+    .term-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .term-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .highlight-box {
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 14px;
+      color: #475569;
+    }
 
-  const accountTypes = {
-    현금: "자산",
-    보통예금: "자산",
-    외상매출금: "자산",
-    상품: "자산",
-    비품: "자산",
-    미수금: "자산",
-    부가세대급금: "자산",
-    매출원가: "비용",
-    급여: "비용",
-    임차료: "비용",
-    접대비: "비용",
-    광고선전비: "비용",
-    복리후생비: "비용",
-    감가상각비: "비용",
-    미지급금: "부채",
-    부가세예수금: "부채",
-    매출: "수익"
-  };
+    .quiz-options {
+      display: grid;
+      gap: 10px;
+    }
+    .quiz-option {
+      border: 1px solid #dbe3ee;
+      border-radius: 14px;
+      padding: 14px;
+      cursor: pointer;
+      background: white;
+    }
+    .quiz-option.selected {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
 
-  const ledgerMap = useMemo(() => {
-    const map = {};
-    seedAccounts.forEach((acc) => {
-      map[acc] = [];
-    });
+    .footer-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
 
-    entries.forEach((e) => {
-      map[e.debit] = map[e.debit] || [];
-      map[e.credit] = map[e.credit] || [];
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      .grid-2, .grid-3, .grid-4, .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">전산세무회계 앱</div>
+      <div class="sub">시험용 + 실무확장형 웹앱</div>
 
-      map[e.debit].push({
-        id: `${e.id}-debit`,
-        date: e.date,
-        description: e.description,
-        debit: Number(e.amount || 0),
-        credit: 0
-      });
-
-      map[e.credit].push({
-        id: `${e.id}-credit`,
-        date: e.date,
-        description: e.description,
-        debit: 0,
-        credit: Number(e.amount || 0)
-      });
-    });
-
-    Object.keys(map).forEach((acc) => {
-      let running = 0;
-      const normal = ["자산", "비용"].includes(accountTypes[acc]) ? "debit" : "credit";
-      map[acc] = map[acc].map((row) => {
-        running += normal === "debit" ? row.debit - row.credit : row.credit - row.debit;
-        return { ...row, balance: running };
-      });
-    });
-
-    return map;
-  }, [entries]);
-
-  const [selectedLedger, setSelectedLedger] = useState("현금");
-
-  const trialBalance = useMemo(() => {
-    return seedAccounts.map((acc) => {
-      const rows = ledgerMap[acc] || [];
-      const debitTotal = rows.reduce((sum, r) => sum + r.debit, 0);
-      const creditTotal = rows.reduce((sum, r) => sum + r.credit, 0);
-      const type = accountTypes[acc] || "자산";
-      const balance = ["자산", "비용"].includes(type) ? debitTotal - creditTotal : creditTotal - debitTotal;
-      return { acc, type, debitTotal, creditTotal, balance };
-    });
-  }, [ledgerMap]);
-
-  const vatSummary = useMemo(() => {
-    const manualSales = Number(salesTax || 0);
-    const manualPurchase = Number(purchaseTax || 0);
-    const manualNonDeductible = Number(vatNonDeductible || 0);
-
-    const salesOutputTax = vatSales.reduce((sum, r) => sum + Number(r.taxAmount || 0), 0);
-    const deductibleInputTax = vatPurchases.filter((r) => r.deductible === "공제").reduce((sum, r) => sum + Number(r.taxAmount || 0), 0);
-    const nonDeductibleInputTax = vatPurchases.filter((r) => r.deductible === "불공제").reduce((sum, r) => sum + Number(r.taxAmount || 0), 0);
-
-    const totalSalesTax = manualSales + salesOutputTax;
-    const totalPurchaseTax = manualPurchase + deductibleInputTax;
-    const totalNonDeductible = manualNonDeductible + nonDeductibleInputTax;
-    const payable = totalSalesTax - totalPurchaseTax + totalNonDeductible;
-
-    return {
-      salesOutputTax,
-      deductibleInputTax,
-      nonDeductibleInputTax,
-      totalSalesTax,
-      totalPurchaseTax,
-      totalNonDeductible,
-      payable
-    };
-  }, [salesTax, purchaseTax, vatNonDeductible, vatSales, vatPurchases]);
-
-  const currentQuestion = dailyQuestions[quizIndex];
-
-  const addEntry = () => {
-    if (!newEntry.description || !newEntry.debit || !newEntry.credit || !newEntry.amount) return;
-    setEntries((prev) => [{ id: Date.now(), ...newEntry }, ...prev]);
-    setNewEntry({ date: "2026-03-10", description: "", debit: "", credit: "", amount: "", vatType: "과세" });
-  };
-
-  const addAdjustment = () => {
-    const meta = seedAdjustments.find((s) => s.name === selectedAdjustment);
-    if (!meta || !adjustmentAmount) return;
-    setAdjustments((prev) => [{ id: Date.now(), name: meta.name, section: meta.section, type: meta.type, amount: adjustmentAmount, memo: adjustmentMemo || meta.defaultMemo }, ...prev]);
-    setAdjustmentAmount("");
-  };
-
-  const addVatSale = () => {
-    if (!newVatSale.client || !newVatSale.supplyAmount || !newVatSale.taxAmount) return;
-    setVatSales((prev) => [{ id: Date.now(), ...newVatSale }, ...prev]);
-    setNewVatSale({ date: "2026-03-10", client: "", supplyAmount: "", taxAmount: "" });
-  };
-
-  const addVatPurchase = () => {
-    if (!newVatPurchase.vendor || !newVatPurchase.supplyAmount || !newVatPurchase.taxAmount) return;
-    setVatPurchases((prev) => [{ id: Date.now(), ...newVatPurchase }, ...prev]);
-    setNewVatPurchase({ date: "2026-03-10", vendor: "", supplyAmount: "", taxAmount: "", deductible: "공제", reason: "" });
-  };
-
-  const deleteVatSale = (id) => setVatSales((prev) => prev.filter((r) => r.id !== id));
-  const deleteVatPurchase = (id) => setVatPurchases((prev) => prev.filter((r) => r.id !== id));
-
-  const deleteEntry = (id) => setEntries((prev) => prev.filter((e) => e.id !== id));
-  const deleteAdjustment = (id) => setAdjustments((prev) => prev.filter((a) => a.id !== id));
-
-  const answerQuiz = () => {
-    if (selectedOption === null) return;
-    const correct = selectedOption === currentQuestion.answer;
-    setQuizResults((prev) => [{ id: currentQuestion.id, correct }, ...prev]);
-    setSelectedOption(null);
-    setQuizIndex((prev) => (prev + 1) % dailyQuestions.length);
-  };
-
-  const correctCount = quizResults.filter((r) => r.correct).length;
-
-  const menu = [
-    { id: "dashboard", label: "대시보드", icon: Home },
-    { id: "glossary", label: "용어사전", icon: BookOpen },
-    { id: "journal", label: "분개입력", icon: FileText },
-    { id: "ledger", label: "전기원장", icon: Building2 },
-    { id: "trial", label: "시산표", icon: Calculator },
-    { id: "adjustment", label: "세무조정", icon: Calculator },
-    { id: "vat", label: "부가세", icon: Building2 },
-    { id: "quiz", label: "문제풀이", icon: GraduationCap },
-    { id: "gpt", label: "GPT설명", icon: BrainCircuit }
-  ];
-
-  const StatCard = ({ title, value, sub }) => (
-    <Card className="rounded-2xl shadow-sm">
-      <CardContent className="p-5">
-        <div className="text-sm text-slate-500">{title}</div>
-        <div className="mt-2 text-2xl font-bold">{value}</div>
-        <div className="mt-1 text-xs text-slate-500">{sub}</div>
-      </CardContent>
-    </Card>
-  );
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 p-4 lg:grid-cols-[260px_1fr]">
-        <Card className="h-fit rounded-3xl border-0 shadow-md lg:sticky lg:top-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Calculator className="h-5 w-5" />
-              전산세무회계 앱
-            </CardTitle>
-            <div className="text-sm text-slate-500">시험용 + 실무확장형 MVP</div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="rounded-2xl bg-slate-100 p-3 text-sm">
-              <div className="font-semibold">{company.name}</div>
-              <div className="mt-1 text-slate-500">대표 {company.ceo} · 사업연도 {company.year}</div>
-            </div>
-            <div className="grid gap-2">
-              {menu.map((m) => {
-                const Icon = m.icon;
-                const active = tab === m.id;
-                return (
-                  <Button key={m.id} variant={active ? "default" : "ghost"} className="justify-start rounded-2xl" onClick={() => setTab(m.id)}>
-                    <Icon className="mr-2 h-4 w-4" /> {m.label}
-                  </Button>
-                );
-              })}
-            </div>
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button className="rounded-2xl" onClick={saveAll}><Save className="mr-2 h-4 w-4" />저장</Button>
-              <Button variant="outline" className="rounded-2xl" onClick={resetAll}>초기화</Button>
-            </div>
-            {savedAt && <div className="text-xs text-slate-500">마지막 저장: {savedAt}</div>}
-          </CardContent>
-        </Card>
-
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          {tab === "dashboard" && (
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <StatCard title="등록 전표" value={`${entries.length}건`} sub="분개 입력 누적 건수" />
-                <StatCard title="세무조정 가산" value={`${currency(totals.plus)}원`} sub="손금불산입·익금산입 합계" />
-                <StatCard title="세무조정 차감" value={`${currency(totals.minus)}원`} sub="손금산입·익금불산입 합계" />
-                <StatCard title="퀴즈 정답" value={`${correctCount}개`} sub={`총 ${quizResults.length}회 풀이`} />
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-3">
-                <Card className="rounded-3xl xl:col-span-2">
-                  <CardHeader>
-                    <CardTitle>빠른 시작</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 md:grid-cols-2">
-                    <Button className="h-20 justify-start rounded-2xl text-left" onClick={() => setTab("glossary")}>
-                      <div>
-                        <div className="font-semibold">용어사전</div>
-                        <div className="text-xs opacity-80">시험 핵심 개념과 실무 포인트 확인</div>
-                      </div>
-                    </Button>
-                    <Button variant="outline" className="h-20 justify-start rounded-2xl text-left" onClick={() => setTab("journal")}>
-                      <div>
-                        <div className="font-semibold">전표입력</div>
-                        <div className="text-xs opacity-80">분개 데이터 입력 후 집계</div>
-                      </div>
-                    </Button>
-                    <Button variant="outline" className="h-20 justify-start rounded-2xl text-left" onClick={() => setTab("adjustment")}>
-                      <div>
-                        <div className="font-semibold">세무조정</div>
-                        <div className="text-xs opacity-80">가산·차감 조정으로 과세표준 계산</div>
-                      </div>
-                    </Button>
-                    <Button variant="outline" className="h-20 justify-start rounded-2xl text-left" onClick={() => setTab("quiz")}>
-                      <div>
-                        <div className="font-semibold">문제풀이</div>
-                        <div className="text-xs opacity-80">핵심 문제 풀이와 해설</div>
-                      </div>
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-3xl">
-                  <CardHeader>
-                    <CardTitle>앱 목표</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm text-slate-600">
-                    <div className="rounded-2xl bg-slate-100 p-3">하루이틀 안에 완성 가능한 범위로 핵심 기능을 한 앱에 모았습니다.</div>
-                    <div className="rounded-2xl bg-slate-100 p-3">시험용 흐름으로 쓰되, 실무용 확장 가능한 데이터 구조를 유지합니다.</div>
-                    <div className="rounded-2xl bg-slate-100 p-3">저장 방식은 로컬 저장이며, 이후 Firebase/Supabase로 확장 가능합니다.</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>추정 재무요약</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>추정 매출</span><span>{currency(fsSummary.sales)}원</span></div>
-                    <div className="flex justify-between"><span>추정 비용</span><span>{currency(fsSummary.expenses)}원</span></div>
-                    <div className="flex justify-between font-semibold"><span>추정 이익</span><span>{currency(fsSummary.estimatedProfit)}원</span></div>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>법인세 기초</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>회계상 이익</span><span>{currency(bookProfit)}원</span></div>
-                    <div className="flex justify-between"><span>가산조정</span><span>{currency(totals.plus)}원</span></div>
-                    <div className="flex justify-between"><span>차감조정</span><span>{currency(totals.minus)}원</span></div>
-                    <div className="flex justify-between font-semibold"><span>과세표준 기초</span><span>{currency(totals.taxableIncome)}원</span></div>
-                  </CardContent>
-                </Card>
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>부가세 기초</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>매출세액 합계</span><span>{currency(vatSummary.totalSalesTax)}원</span></div>
-                    <div className="flex justify-between"><span>공제매입세액 합계</span><span>{currency(vatSummary.totalPurchaseTax)}원</span></div>
-                    <div className="flex justify-between"><span>불공제세액 합계</span><span>{currency(vatSummary.totalNonDeductible)}원</span></div>
-                    <div className="flex justify-between font-semibold"><span>납부예상세액</span><span>{currency(vatSummary.payable)}원</span></div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {tab === "glossary" && (
-            <Card className="rounded-3xl">
-              <CardHeader>
-                <CardTitle>용어사전</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-                  <Input value={termSearch} onChange={(e) => setTermSearch(e.target.value)} placeholder="용어, 설명, 카테고리 검색" className="rounded-2xl pl-9" />
-                </div>
-                <Accordion type="single" collapsible className="w-full">
-                  {filteredTerms.map((item) => (
-                    <AccordionItem key={item.id} value={String(item.id)}>
-                      <AccordionTrigger>
-                        <div className="flex items-center gap-2 text-left">
-                          <Badge variant="secondary">{item.category}</Badge>
-                          <span className="font-semibold">{item.term}</span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-3 rounded-2xl bg-slate-50 p-4 text-sm">
-                          <div><span className="font-semibold">정의:</span> {item.definition}</div>
-                          <div><span className="font-semibold">시험 포인트:</span> {item.examTip}</div>
-                          <div><span className="font-semibold">실무 포인트:</span> {item.practical}</div>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button className="rounded-2xl">GPT 설명 프롬프트 보기</Button>
-                            </DialogTrigger>
-                            <DialogContent className="rounded-3xl">
-                              <DialogHeader>
-                                <DialogTitle>{item.term} - GPT 설명 프롬프트</DialogTitle>
-                              </DialogHeader>
-                              <Textarea value={item.gptPrompt} readOnly className="min-h-[140px] rounded-2xl" />
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </CardContent>
-            </Card>
-          )}
-
-          {tab === "journal" && (
-            <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>분개 입력</CardTitle></CardHeader>
-                <CardContent className="grid gap-3 md:grid-cols-2">
-                  <Input type="date" value={newEntry.date} onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })} className="rounded-2xl" />
-                  <Input placeholder="적요" value={newEntry.description} onChange={(e) => setNewEntry({ ...newEntry, description: e.target.value })} className="rounded-2xl" />
-
-                  <Select value={newEntry.debit} onValueChange={(v) => setNewEntry({ ...newEntry, debit: v })}>
-                    <SelectTrigger className="rounded-2xl"><SelectValue placeholder="차변 계정" /></SelectTrigger>
-                    <SelectContent>{seedAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
-                  </Select>
-
-                  <Select value={newEntry.credit} onValueChange={(v) => setNewEntry({ ...newEntry, credit: v })}>
-                    <SelectTrigger className="rounded-2xl"><SelectValue placeholder="대변 계정" /></SelectTrigger>
-                    <SelectContent>{seedAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
-                  </Select>
-
-                  <Input type="number" placeholder="금액" value={newEntry.amount} onChange={(e) => setNewEntry({ ...newEntry, amount: e.target.value })} className="rounded-2xl" />
-                  <Select value={newEntry.vatType} onValueChange={(v) => setNewEntry({ ...newEntry, vatType: v })}>
-                    <SelectTrigger className="rounded-2xl"><SelectValue placeholder="부가세 구분" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="과세">과세</SelectItem>
-                      <SelectItem value="면세">면세</SelectItem>
-                      <SelectItem value="영세율">영세율</SelectItem>
-                      <SelectItem value="불공제">불공제</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <div className="md:col-span-2 flex gap-2">
-                    <Button className="rounded-2xl" onClick={addEntry}><Plus className="mr-2 h-4 w-4" />분개 추가</Button>
-                    <Button variant="outline" className="rounded-2xl" onClick={saveAll}>저장</Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>분개 집계 요약</CardTitle></CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between"><span>총 입력금액</span><span>{currency(fsSummary.debitTotal)}원</span></div>
-                  <div className="flex justify-between"><span>추정 매출</span><span>{currency(fsSummary.sales)}원</span></div>
-                  <div className="flex justify-between"><span>추정 비용</span><span>{currency(fsSummary.expenses)}원</span></div>
-                  <div className="flex justify-between"><span>추정 자산</span><span>{currency(fsSummary.assets)}원</span></div>
-                  <div className="flex justify-between"><span>추정 부채</span><span>{currency(fsSummary.liabilities)}원</span></div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl xl:col-span-2">
-                <CardHeader><CardTitle>분개장</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {entries.length === 0 && <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">아직 입력된 분개가 없습니다.</div>}
-                  {entries.map((e) => (
-                    <div key={e.id} className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between">
-                      <div className="space-y-1 text-sm">
-                        <div className="font-semibold">{e.description}</div>
-                        <div className="text-slate-500">{e.date} · 차변 {e.debit} / 대변 {e.credit}</div>
-                        <div className="text-slate-500">{currency(e.amount)}원 · {e.vatType}</div>
-                      </div>
-                      <Button variant="outline" className="rounded-2xl" onClick={() => deleteEntry(e.id)}><Trash2 className="mr-2 h-4 w-4" />삭제</Button>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {tab === "ledger" && (
-            <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>전기 원장</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <Select value={selectedLedger} onValueChange={setSelectedLedger}>
-                    <SelectTrigger className="rounded-2xl"><SelectValue placeholder="계정과목 선택" /></SelectTrigger>
-                    <SelectContent>
-                      {seedAccounts.map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-600">
-                    분개 입력 자료를 기준으로 자동 전기됩니다. 자산/비용 계정은 차변 증가, 부채/수익 계정은 대변 증가로 잔액을 계산합니다.
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>{selectedLedger} 계정 원장</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {(ledgerMap[selectedLedger] || []).length === 0 && <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">이 계정의 전기 내역이 없습니다.</div>}
-                  {(ledgerMap[selectedLedger] || []).map((row) => (
-                    <div key={row.id} className="grid grid-cols-5 gap-2 rounded-2xl border p-3 text-sm">
-                      <div>{row.date}</div>
-                      <div>{row.description}</div>
-                      <div className="text-right">{currency(row.debit)}</div>
-                      <div className="text-right">{currency(row.credit)}</div>
-                      <div className="text-right font-semibold">{currency(row.balance)}</div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {tab === "trial" && (
-            <Card className="rounded-3xl">
-              <CardHeader><CardTitle>합계잔액시산표</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-5 gap-2 rounded-2xl bg-slate-100 p-3 text-sm font-semibold">
-                  <div>계정과목</div>
-                  <div>구분</div>
-                  <div className="text-right">차변합계</div>
-                  <div className="text-right">대변합계</div>
-                  <div className="text-right">잔액</div>
-                </div>
-                {trialBalance.map((row) => (
-                  <div key={row.acc} className="grid grid-cols-5 gap-2 rounded-2xl border p-3 text-sm">
-                    <div>{row.acc}</div>
-                    <div>{row.type}</div>
-                    <div className="text-right">{currency(row.debitTotal)}</div>
-                    <div className="text-right">{currency(row.creditTotal)}</div>
-                    <div className="text-right font-semibold">{currency(row.balance)}</div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {tab === "adjustment" && (
-            <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>세무조정 입력</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <Input type="number" value={bookProfit} onChange={(e) => setBookProfit(e.target.value)} placeholder="회계상 이익 입력" className="rounded-2xl" />
-                  <Select
-                    value={selectedAdjustment}
-                    onValueChange={(v) => {
-                      setSelectedAdjustment(v);
-                      const found = seedAdjustments.find((s) => s.name === v);
-                      setAdjustmentMemo(found?.defaultMemo || "");
-                    }}
-                  >
-                    <SelectTrigger className="rounded-2xl"><SelectValue placeholder="조정 항목 선택" /></SelectTrigger>
-                    <SelectContent>
-                      {seedAdjustments.map((s) => <SelectItem key={s.id} value={s.name}>{s.section} · {s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input type="number" value={adjustmentAmount} onChange={(e) => setAdjustmentAmount(e.target.value)} placeholder="조정 금액" className="rounded-2xl" />
-                  <Textarea value={adjustmentMemo} onChange={(e) => setAdjustmentMemo(e.target.value)} placeholder="비고" className="rounded-2xl" />
-                  <div className="flex gap-2">
-                    <Button className="rounded-2xl" onClick={addAdjustment}><Plus className="mr-2 h-4 w-4" />조정 추가</Button>
-                    <Button variant="outline" className="rounded-2xl" onClick={saveAll}>저장</Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>과세표준 기초 계산</CardTitle></CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span>회계상 이익</span><span>{currency(bookProfit)}원</span></div>
-                  <div className="flex justify-between"><span>가산조정</span><span>{currency(totals.plus)}원</span></div>
-                  <div className="flex justify-between"><span>차감조정</span><span>{currency(totals.minus)}원</span></div>
-                  <div className="flex justify-between text-lg font-bold"><span>과세표준 기초</span><span>{currency(totals.taxableIncome)}원</span></div>
-                  <div className="rounded-2xl bg-slate-100 p-3 text-slate-600">
-                    계산식: 회계상 이익 + 가산조정 - 차감조정
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl xl:col-span-2">
-                <CardHeader><CardTitle>조정명세서</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  {adjustments.length === 0 && <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">아직 등록된 조정명세가 없습니다.</div>}
-                  <div className="grid grid-cols-5 gap-2 rounded-2xl bg-slate-100 p-3 text-sm font-semibold">
-                    <div>구분</div>
-                    <div>항목명</div>
-                    <div className="text-right">금액</div>
-                    <div>처분/메모</div>
-                    <div className="text-right">관리</div>
-                  </div>
-                  {adjustments.map((a) => (
-                    <div key={a.id} className="grid grid-cols-5 gap-2 rounded-2xl border p-3 text-sm items-center">
-                      <div><Badge variant={a.type === "가산" ? "default" : "secondary"}>{a.section}</Badge></div>
-                      <div className="font-semibold">{a.name}</div>
-                      <div className="text-right">{currency(a.amount)}원</div>
-                      <div className="text-slate-500">{a.memo}</div>
-                      <div className="text-right">
-                        <Button variant="outline" className="rounded-2xl" onClick={() => deleteAdjustment(a.id)}><Trash2 className="mr-2 h-4 w-4" />삭제</Button>
-                      </div>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {tab === "vat" && (
-            <div className="space-y-4">
-              <div className="grid gap-4 xl:grid-cols-3">
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>매출 등록</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <Input type="date" value={newVatSale.date} onChange={(e) => setNewVatSale({ ...newVatSale, date: e.target.value })} className="rounded-2xl" />
-                    <Input placeholder="거래처" value={newVatSale.client} onChange={(e) => setNewVatSale({ ...newVatSale, client: e.target.value })} className="rounded-2xl" />
-                    <Input type="number" placeholder="공급가액" value={newVatSale.supplyAmount} onChange={(e) => setNewVatSale({ ...newVatSale, supplyAmount: e.target.value })} className="rounded-2xl" />
-                    <Input type="number" placeholder="세액" value={newVatSale.taxAmount} onChange={(e) => setNewVatSale({ ...newVatSale, taxAmount: e.target.value })} className="rounded-2xl" />
-                    <Button className="rounded-2xl" onClick={addVatSale}><Plus className="mr-2 h-4 w-4" />매출 추가</Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>매입 등록 + 공제판정</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    <Input type="date" value={newVatPurchase.date} onChange={(e) => setNewVatPurchase({ ...newVatPurchase, date: e.target.value })} className="rounded-2xl" />
-                    <Input placeholder="거래처" value={newVatPurchase.vendor} onChange={(e) => setNewVatPurchase({ ...newVatPurchase, vendor: e.target.value })} className="rounded-2xl" />
-                    <Input type="number" placeholder="공급가액" value={newVatPurchase.supplyAmount} onChange={(e) => setNewVatPurchase({ ...newVatPurchase, supplyAmount: e.target.value })} className="rounded-2xl" />
-                    <Input type="number" placeholder="세액" value={newVatPurchase.taxAmount} onChange={(e) => setNewVatPurchase({ ...newVatPurchase, taxAmount: e.target.value })} className="rounded-2xl" />
-                    <Select value={newVatPurchase.deductible} onValueChange={(v) => setNewVatPurchase({ ...newVatPurchase, deductible: v })}>
-                      <SelectTrigger className="rounded-2xl"><SelectValue placeholder="공제 여부" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="공제">공제</SelectItem>
-                        <SelectItem value="불공제">불공제</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input placeholder="판정 사유 (예: 접대비, 비영업용 승용차)" value={newVatPurchase.reason} onChange={(e) => setNewVatPurchase({ ...newVatPurchase, reason: e.target.value })} className="rounded-2xl" />
-                    <Button className="rounded-2xl" onClick={addVatPurchase}><Plus className="mr-2 h-4 w-4" />매입 추가</Button>
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>부가세 요약</CardTitle></CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <div className="flex justify-between"><span>매출세액 합계</span><span>{currency(vatSummary.totalSalesTax)}원</span></div>
-                    <div className="flex justify-between"><span>공제매입세액</span><span>{currency(vatSummary.totalPurchaseTax)}원</span></div>
-                    <div className="flex justify-between"><span>불공제매입세액</span><span>{currency(vatSummary.totalNonDeductible)}원</span></div>
-                    <div className="flex justify-between font-semibold"><span>납부예상세액</span><span>{currency(vatSummary.payable)}원</span></div>
-                    <div className="rounded-2xl bg-slate-100 p-3 text-slate-600">계산식: 매출세액 - 공제매입세액 + 불공제매입세액</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-2">
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>매출세액 등록 내역</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {vatSales.length === 0 && <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">등록된 매출 내역이 없습니다.</div>}
-                    {vatSales.map((row) => (
-                      <div key={row.id} className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between">
-                        <div className="text-sm space-y-1">
-                          <div className="font-semibold">{row.client}</div>
-                          <div className="text-slate-500">{row.date} · 공급가액 {currency(row.supplyAmount)}원</div>
-                          <div className="text-slate-500">세액 {currency(row.taxAmount)}원</div>
-                        </div>
-                        <Button variant="outline" className="rounded-2xl" onClick={() => deleteVatSale(row.id)}><Trash2 className="mr-2 h-4 w-4" />삭제</Button>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                <Card className="rounded-3xl">
-                  <CardHeader><CardTitle>매입세액 공제판정 내역</CardTitle></CardHeader>
-                  <CardContent className="space-y-3">
-                    {vatPurchases.length === 0 && <div className="rounded-2xl bg-slate-100 p-4 text-sm text-slate-500">등록된 매입 내역이 없습니다.</div>}
-                    {vatPurchases.map((row) => (
-                      <div key={row.id} className="flex flex-col gap-3 rounded-2xl border p-4 md:flex-row md:items-center md:justify-between">
-                        <div className="text-sm space-y-1">
-                          <div className="flex items-center gap-2"><span className="font-semibold">{row.vendor}</span><Badge variant={row.deductible === "공제" ? "default" : "secondary"}>{row.deductible}</Badge></div>
-                          <div className="text-slate-500">{row.date} · 공급가액 {currency(row.supplyAmount)}원</div>
-                          <div className="text-slate-500">세액 {currency(row.taxAmount)}원 · 사유 {row.reason || "-"}</div>
-                        </div>
-                        <Button variant="outline" className="rounded-2xl" onClick={() => deleteVatPurchase(row.id)}><Trash2 className="mr-2 h-4 w-4" />삭제</Button>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {tab === "quiz" && (
-            <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>문제풀이</CardTitle></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Badge>{currentQuestion.category}</Badge>
-                    <span className="text-sm text-slate-500">문제 {quizIndex + 1} / {dailyQuestions.length}</span>
-                  </div>
-                  <div className="text-lg font-semibold">{currentQuestion.question}</div>
-                  <div className="grid gap-2">
-                    {currentQuestion.options.map((opt, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setSelectedOption(idx)}
-                        className={`rounded-2xl border p-4 text-left transition ${selectedOption === idx ? "border-slate-900 bg-slate-100" : "bg-white"}`}
-                      >
-                        {idx + 1}. {opt}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button className="rounded-2xl" onClick={answerQuiz}>정답 확인</Button>
-                    <Button variant="outline" className="rounded-2xl" onClick={() => { setSelectedOption(null); setQuizIndex((quizIndex + 1) % dailyQuestions.length); }}>다음 문제</Button>
-                  </div>
-                  {selectedOption !== null && (
-                    <div className="rounded-2xl bg-slate-100 p-4 text-sm">
-                      <div className="font-semibold">해설</div>
-                      <div className="mt-1">{currentQuestion.explanation}</div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl">
-                <CardHeader><CardTitle>학습 현황</CardTitle></CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex justify-between"><span>풀이 횟수</span><span>{quizResults.length}회</span></div>
-                  <div className="flex justify-between"><span>정답 수</span><span>{correctCount}개</span></div>
-                  <div className="flex justify-between"><span>오답 수</span><span>{quizResults.length - correctCount}개</span></div>
-                  <div className="rounded-2xl bg-slate-100 p-4">
-                    시험용으로는 객관식 기반, 이후 분개형/세무조정 입력형 문제로 확장 가능합니다.
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {tab === "gpt" && (
-            <Card className="rounded-3xl">
-              <CardHeader><CardTitle>GPT 설명 센터</CardTitle></CardHeader>
-              <CardContent>
-                <Tabs defaultValue="prompts" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 rounded-2xl">
-                    <TabsTrigger value="prompts" className="rounded-2xl">추천 프롬프트</TabsTrigger>
-                    <TabsTrigger value="workflow" className="rounded-2xl">사용 흐름</TabsTrigger>
-                    <TabsTrigger value="roadmap" className="rounded-2xl">확장 로드맵</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="prompts" className="mt-4 space-y-3">
-                    {[
-                      "손금불산입과 익금불산입 차이를 초보자에게 쉽게 설명해줘.",
-                      "접대비 한도초과가 왜 손금불산입인지 분개와 함께 설명해줘.",
-                      "감가상각비 한도초과의 시험 포인트와 실무 포인트를 비교해줘.",
-                      "비영업용 소형승용차 관련 부가세 매입세액 불공제를 사례로 설명해줘.",
-                      "전표 입력에서 부가세 대급금/예수금이 헷갈릴 때 구분법을 알려줘."
-                    ].map((p, i) => (
-                      <div key={i} className="rounded-2xl border p-4 text-sm">{p}</div>
-                    ))}
-                  </TabsContent>
-                  <TabsContent value="workflow" className="mt-4 space-y-3 text-sm text-slate-600">
-                    <div className="rounded-2xl bg-slate-100 p-4">1. 용어사전에서 개념 확인</div>
-                    <div className="rounded-2xl bg-slate-100 p-4">2. 전표입력으로 거래 입력</div>
-                    <div className="rounded-2xl bg-slate-100 p-4">3. 세무조정에서 가산/차감 조정</div>
-                    <div className="rounded-2xl bg-slate-100 p-4">4. 부가세 계산과 문제풀이로 복습</div>
-                  </TabsContent>
-                  <TabsContent value="roadmap" className="mt-4 space-y-3 text-sm text-slate-600">
-                    <div className="flex items-start gap-2 rounded-2xl bg-slate-100 p-4"><CheckCircle2 className="mt-0.5 h-4 w-4" />1차 완료: 용어사전, 전표입력, 세무조정, 부가세, 문제풀이, 로컬 저장</div>
-                    <div className="flex items-start gap-2 rounded-2xl bg-slate-100 p-4"><CheckCircle2 className="mt-0.5 h-4 w-4" />2차 확장: 로그인, 사용자별 저장, 문제 DB 대량화, 오답노트</div>
-                    <div className="flex items-start gap-2 rounded-2xl bg-slate-100 p-4"><CheckCircle2 className="mt-0.5 h-4 w-4" />3차 확장: PDF 출력, 신고서 화면, Firebase/Supabase 연동, GPT API 연결</div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          )}
-        </motion.div>
+      <div class="company-box">
+        <div><strong id="companyNameBox">샘플회사</strong></div>
+        <div>대표: <span id="companyCeoBox">홍길동</span></div>
+        <div>사업연도: <span id="companyYearBox">2026</span></div>
       </div>
-    </div>
-  );
-}
 
-export default App;
+      <div class="nav">
+        <button class="nav-btn active" data-page="dashboard">대시보드</button>
+        <button class="nav-btn" data-page="glossary">용어사전</button>
+        <button class="nav-btn" data-page="journal">분개입력</button>
+        <button class="nav-btn" data-page="ledger">전기원장</button>
+        <button class="nav-btn" data-page="trial">합계잔액시산표</button>
+        <button class="nav-btn" data-page="vat">부가세 공제판정</button>
+        <button class="nav-btn" data-page="adjustment">조정명세서</button>
+        <button class="nav-btn" data-page="quiz">오늘의 3문제</button>
+        <button class="nav-btn" data-page="gpt">GPT 설명</button>
+      </div>
+
+      <div class="side-actions">
+        <button class="btn-save" onclick="saveAll()">저장</button>
+        <button class="btn-reset" onclick="resetAll()">초기화</button>
+      </div>
+      <div class="footer-note" id="savedAtText">마지막 저장: 없음</div>
+    </aside>
+
+    <main class="content">
+      <section id="dashboard" class="page active">
+        <div class="grid grid-4">
+          <div class="card">
+            <div class="stat-title">등록 분개</div>
+            <div class="stat-value" id="statEntries">0건</div>
+            <div class="muted">입력된 분개 수</div>
+          </div>
+          <div class="card">
+            <div class="stat-title">가산조정</div>
+            <div class="stat-value" id="statPlus">0원</div>
+            <div class="muted">손금불산입·익금산입</div>
+          </div>
+          <div class="card">
+            <div class="stat-title">차감조정</div>
+            <div class="stat-value" id="statMinus">0원</div>
+            <div class="muted">손금산입·익금불산입</div>
+          </div>
+          <div class="card">
+            <div class="stat-title">오늘 퀴즈</div>
+            <div class="stat-value" id="statQuiz">0/3</div>
+            <div class="muted">정답 수</div>
+          </div>
+        </div>
+
+        <div class="grid grid-3" style="margin-top:16px;">
+          <div class="card">
+            <h3>회사 정보</h3>
+            <div class="form-grid-1">
+              <input id="companyName" placeholder="회사명" />
+              <input id="companyCeo" placeholder="대표자" />
+              <input id="companyBizNo" placeholder="사업자번호" />
+              <input id="companyYear" placeholder="사업연도" />
+              <button class="btn" onclick="updateCompany()">회사 정보 반영</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>재무/세무 요약</h3>
+            <div class="highlight-box" id="summaryFinance"></div>
+          </div>
+
+          <div class="card">
+            <h3>부가세 요약</h3>
+            <div class="highlight-box" id="summaryVat"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="glossary" class="page">
+        <div class="card">
+          <h3>용어사전</h3>
+          <input id="termSearch" placeholder="용어, 설명, 카테고리 검색" oninput="renderTerms()" />
+          <div style="margin-top:14px;" id="termList"></div>
+        </div>
+      </section>
+
+      <section id="journal" class="page">
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>분개 입력</h3>
+            <div class="form-grid">
+              <input type="date" id="entryDate" />
+              <input id="entryDescription" placeholder="적요" />
+              <select id="entryDebit"></select>
+              <select id="entryCredit"></select>
+              <input type="number" id="entryAmount" placeholder="금액" />
+              <select id="entryVatType">
+                <option value="과세">과세</option>
+                <option value="면세">면세</option>
+                <option value="영세율">영세율</option>
+                <option value="불공제">불공제</option>
+              </select>
+            </div>
+            <div class="btn-row" style="margin-top:12px;">
+              <button class="btn" onclick="addEntry()">분개 추가</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>분개 집계 요약</h3>
+            <div class="highlight-box" id="journalSummary"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h3>분개장</h3>
+          <div id="entryList"></div>
+        </div>
+      </section>
+
+      <section id="ledger" class="page">
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>전기 원장</h3>
+            <select id="selectedLedger" onchange="renderLedger()"></select>
+            <div class="highlight-box" style="margin-top:12px;">
+              분개 입력 자료를 기준으로 자동 전기됩니다.<br>
+              자산/비용 계정은 차변 증가, 부채/수익 계정은 대변 증가 기준으로 잔액을 계산합니다.
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 id="ledgerTitle">계정 원장</h3>
+            <div class="table-wrap" id="ledgerTable"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="trial" class="page">
+        <div class="card">
+          <h3>합계잔액시산표</h3>
+          <div class="table-wrap" id="trialTable"></div>
+        </div>
+      </section>
+
+      <section id="vat" class="page">
+        <div class="grid grid-3">
+          <div class="card">
+            <h3>매출 등록</h3>
+            <div class="form-grid-1">
+              <input type="date" id="vatSaleDate" />
+              <input id="vatSaleClient" placeholder="거래처" />
+              <input type="number" id="vatSaleSupply" placeholder="공급가액" />
+              <input type="number" id="vatSaleTax" placeholder="세액" />
+              <button class="btn" onclick="addVatSale()">매출 추가</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>매입 등록 + 공제판정</h3>
+            <div class="form-grid-1">
+              <input type="date" id="vatPurchaseDate" />
+              <input id="vatPurchaseVendor" placeholder="거래처" />
+              <input type="number" id="vatPurchaseSupply" placeholder="공급가액" />
+              <input type="number" id="vatPurchaseTax" placeholder="세액" />
+              <select id="vatPurchaseDeductible">
+                <option value="공제">공제</option>
+                <option value="불공제">불공제</option>
+              </select>
+              <input id="vatPurchaseReason" placeholder="판정 사유 (예: 접대비, 비영업용 승용차)" />
+              <button class="btn" onclick="addVatPurchase()">매입 추가</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>부가세 요약</h3>
+            <div class="highlight-box" id="vatSummaryBox"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:16px;">
+          <div class="card">
+            <h3>매출세액 등록 내역</h3>
+            <div id="vatSalesList"></div>
+          </div>
+
+          <div class="card">
+            <h3>매입세액 공제판정 내역</h3>
+            <div id="vatPurchasesList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="adjustment" class="page">
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>조정명세 입력</h3>
+            <div class="form-grid-1">
+              <input type="number" id="bookProfit" placeholder="회계상 이익" />
+              <select id="adjustmentItem"></select>
+              <input type="number" id="adjustmentAmount" placeholder="금액" />
+              <select id="adjustmentDisposition">
+                <option value="유보">유보</option>
+                <option value="유보환입">유보환입</option>
+                <option value="사외유출">사외유출</option>
+                <option value="기타">기타</option>
+              </select>
+              <textarea id="adjustmentMemo" placeholder="메모 또는 설명"></textarea>
+              <button class="btn" onclick="addAdjustment()">조정 추가</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>과세표준 기초 계산</h3>
+            <div class="highlight-box" id="adjustmentSummary"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <h3>조정명세서</h3>
+          <div class="table-wrap" id="adjustmentTable"></div>
+        </div>
+      </section>
+
+      <section id="quiz" class="page">
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>오늘의 3문제</h3>
+            <div class="muted" id="quizProgressText"></div>
+            <div style="margin-top:10px;font-size:18px;font-weight:700;" id="quizQuestion"></div>
+            <div class="muted" style="margin-top:8px;" id="quizYearCategory"></div>
+            <div class="quiz-options" style="margin-top:14px;" id="quizOptions"></div>
+            <div class="btn-row" style="margin-top:14px;">
+              <button class="btn" onclick="submitQuizAnswer()">정답 확인</button>
+              <button class="btn secondary" onclick="nextQuiz()">다음 문제</button>
+            </div>
+            <div class="highlight-box" style="margin-top:14px; display:none;" id="quizExplanation"></div>
+          </div>
+
+          <div class="card">
+            <h3>오늘 퀴즈 현황</h3>
+            <div class="highlight-box" id="quizSummary"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="gpt" class="page">
+        <div class="card">
+          <h3>GPT 설명 프롬프트</h3>
+          <div class="term-box">손금불산입과 익금불산입의 차이를 초보자도 이해하게 쉽게 설명해줘.</div>
+          <div class="term-box">접대비 한도초과가 왜 손금불산입인지 시험 예시와 실무 예시를 함께 설명해줘.</div>
+          <div class="term-box">감가상각비 한도초과가 유보가 되는 이유와 다음 연도 환입 구조를 설명해줘.</div>
+          <div class="term-box">비영업용 소형승용차 관련 매입세액이 왜 불공제인지 사례로 설명해줘.</div>
+          <div class="term-box">분개와 전기, 시산표의 연결 관계를 아주 쉽게 설명해줘.</div>
+          <div class="term-box">조정명세서에서 유보, 유보환입, 사외유출의 차이를 표로 설명해줘.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "tax_study_app_v_final";
+
+    const seedTerms = [
+      { id: 1, category: "법인세", term: "손금불산입", definition: "회계상 비용이지만 세법상 손금으로 인정되지 않는 항목입니다.", examTip: "접대비 한도초과, 업무무관비용과 함께 자주 출제됩니다.", practical: "세무조정명세서에서 가산조정으로 반영합니다." },
+      { id: 2, category: "법인세", term: "익금불산입", definition: "회계상 수익이지만 세법상 과세하지 않는 항목입니다.", examTip: "수입배당금 익금불산입과 국고보조금이 자주 연결됩니다.", practical: "차감조정으로 반영하며 처분 구분을 확인해야 합니다." },
+      { id: 3, category: "부가가치세", term: "매입세액불공제", definition: "세금계산서를 받아도 공제할 수 없는 매입세액입니다.", examTip: "접대비, 비영업용 소형승용차, 면세사업 관련 매입이 대표적입니다.", practical: "공제판정을 잘못하면 부가세 신고 전체가 틀어집니다." },
+      { id: 4, category: "재무회계", term: "감가상각", definition: "유형자산의 취득원가를 사용기간에 걸쳐 비용으로 배분하는 회계처리입니다.", examTip: "정액법, 정률법, 내용연수와 함께 출제됩니다.", practical: "회계상 감가상각과 세법상 한도 차이로 세무조정이 발생합니다." },
+      { id: 5, category: "부가가치세", term: "영세율", definition: "세율은 0%지만 과세거래에 해당하는 제도입니다.", examTip: "면세와 구별하는 문제로 자주 나옵니다.", practical: "수출 거래와 연결됩니다." },
+      { id: 6, category: "법인세", term: "유보", definition: "세무조정 결과가 사외로 유출되지 않고 회사 내부에 남아 있는 처분입니다.", examTip: "감가상각 초과, 충당금 한도초과와 함께 출제됩니다.", practical: "다음 연도 환입 여부를 계속 관리해야 합니다." },
+      { id: 7, category: "법인세", term: "유보환입", definition: "이전 사업연도 유보가 다음 연도에 반대로 조정되는 것입니다.", examTip: "이중조정 문제에서 중요합니다.", practical: "유보 잔액 테이블 관리가 핵심입니다." },
+      { id: 8, category: "재무회계", term: "전기", definition: "분개 내용을 각 계정원장으로 옮겨 적는 절차입니다.", examTip: "분개→전기→시산표 흐름을 이해해야 합니다.", practical: "계정별 누적 잔액 확인의 핵심입니다." }
+    ];
+
+    const adjustmentSeeds = [
+      { id: 1, section: "손금불산입", name: "접대비 한도초과", type: "가산", defaultMemo: "한도 초과액은 손금불산입" },
+      { id: 2, section: "손금불산입", name: "업무무관비용", type: "가산", defaultMemo: "업무 관련성 검토 필요" },
+      { id: 3, section: "손금불산입", name: "가지급금 인정이자", type: "가산", defaultMemo: "업무무관 가지급금 여부 확인" },
+      { id: 4, section: "익금불산입", name: "수입배당금 익금불산입", type: "차감", defaultMemo: "배당수익 비과세 조정" },
+      { id: 5, section: "손금산입", name: "이월결손금 공제", type: "차감", defaultMemo: "공제한도 검토" },
+      { id: 6, section: "손금불산입", name: "감가상각비 한도초과", type: "가산", defaultMemo: "세법상 한도초과분, 일반적으로 유보" },
+      { id: 7, section: "손금불산입", name: "대손충당금 한도초과", type: "가산", defaultMemo: "세법상 설정한도 초과분" },
+      { id: 8, section: "손금불산입", name: "기부금 한도초과", type: "가산", defaultMemo: "한도 검토 필요" },
+      { id: 9, section: "익금산입", name: "자산수증이익", type: "가산", defaultMemo: "무상수증 관련 수익 반영" },
+      { id: 10, section: "익금불산입", name: "국고보조금", type: "차감", defaultMemo: "압축기장충당금 여부 확인" }
+    ];
+
+    const accounts = [
+      "현금","보통예금","외상매출금","상품","매출","매출원가","급여","임차료","접대비","광고선전비",
+      "복리후생비","비품","감가상각비","미지급금","미수금","부가세대급금","부가세예수금"
+    ];
+
+    const accountTypes = {
+      "현금": "자산",
+      "보통예금": "자산",
+      "외상매출금": "자산",
+      "상품": "자산",
+      "비품": "자산",
+      "미수금": "자산",
+      "부가세대급금": "자산",
+      "매출원가": "비용",
+      "급여": "비용",
+      "임차료": "비용",
+      "접대비": "비용",
+      "광고선전비": "비용",
+      "복리후생비": "비용",
+      "감가상각비": "비용",
+      "미지급금": "부채",
+      "부가세예수금": "부채",
+      "매출": "수익"
+    };
+
+    const seedQuestions = [
+      { id: 1, year: 2020, category: "세무조정", question: "접대비 한도초과액은 세무조정 시 어떻게 처리하는가?", options: ["손금산입", "익금불산입", "손금불산입", "익금산입"], answer: 2, explanation: "접대비 한도초과액은 세법상 비용으로 인정되지 않으므로 손금불산입(가산조정)입니다." },
+      { id: 2, year: 2021, category: "부가가치세", question: "비영업용 소형승용차 관련 매입세액은 어떻게 처리하는가?", options: ["전액 공제", "전액 불공제", "50% 공제", "예정신고만 공제"], answer: 1, explanation: "비영업용 소형승용차 관련 매입세액은 원칙적으로 공제되지 않습니다." },
+      { id: 3, year: 2022, category: "재무회계", question: "감가상각의 본질적 목적은 무엇인가?", options: ["현금관리", "자산원가의 기간배분", "세금감면", "부채감소"], answer: 1, explanation: "감가상각은 자산의 취득원가를 사용기간에 걸쳐 비용으로 배분하는 것입니다." },
+      { id: 4, year: 2023, category: "세무조정", question: "대손충당금 한도초과액은 어떻게 조정하는가?", options: ["손금산입", "익금산입", "손금불산입", "익금불산입"], answer: 2, explanation: "세법상 인정 한도를 초과한 충당금은 손금불산입 처리합니다." },
+      { id: 5, year: 2024, category: "부가가치세", question: "면세사업 관련 매입세액은 어떻게 처리하는가?", options: ["공제", "불공제", "50% 공제", "이월"], answer: 1, explanation: "면세사업 관련 매입세액은 공제할 수 없습니다." },
+      { id: 6, year: 2025, category: "재무회계", question: "다음 중 자산계정에 해당하는 것은 무엇인가?", options: ["매출", "외상매출금", "급여", "이자수익"], answer: 1, explanation: "외상매출금은 자산 계정입니다." },
+      { id: 7, year: 2026, category: "세무조정", question: "감가상각비 세법상 한도초과액의 처분은 일반적으로 무엇인가?", options: ["유보", "사외유출", "기타", "익금"], answer: 0, explanation: "감가상각비 한도초과는 일반적으로 유보 처분이며 이후 환입 대상이 됩니다." }
+    ];
+
+    let state = {
+      company: {
+        name: "샘플회사",
+        ceo: "홍길동",
+        bizNo: "123-45-67890",
+        year: "2026"
+      },
+      entries: [],
+      vatSales: [],
+      vatPurchases: [],
+      adjustments: [],
+      quizAnswers: {},
+      savedAt: null
+    };
+
+    let selectedQuizIndex = 0;
+    let currentQuizSelected = null;
+
+    function todayStr() {
+      return new Date().toISOString().slice(0, 10);
+    }
+
+    function currency(n) {
+      return Number(n || 0).toLocaleString("ko-KR");
+    }
+
+    function loadAll() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          state = JSON.parse(saved);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+
+    function saveAll() {
+      state.savedAt = new Date().toLocaleString("ko-KR");
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderAll();
+      alert("저장되었습니다.");
+    }
+
+    function resetAll() {
+      if (!confirm("모든 데이터를 초기화하시겠습니까?")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+
+    function updateCompany() {
+      state.company.name = document.getElementById("companyName").value || "샘플회사";
+      state.company.ceo = document.getElementById("companyCeo").value || "홍길동";
+      state.company.bizNo = document.getElementById("companyBizNo").value || "123-45-67890";
+      state.company.year = document.getElementById("companyYear").value || "2026";
+      renderAll();
+    }
+
+    function populateBaseInputs() {
+      document.getElementById("companyName").value = state.company.name;
+      document.getElementById("companyCeo").value = state.company.ceo;
+      document.getElementById("companyBizNo").value = state.company.bizNo;
+      document.getElementById("companyYear").value = state.company.year;
+
+      document.getElementById("entryDate").value = todayStr();
+      document.getElementById("vatSaleDate").value = todayStr();
+      document.getElementById("vatPurchaseDate").value = todayStr();
+
+      const debitSel = document.getElementById("entryDebit");
+      const creditSel = document.getElementById("entryCredit");
+      const ledgerSel = document.getElementById("selectedLedger");
+      const adjSel = document.getElementById("adjustmentItem");
+
+      [debitSel, creditSel, ledgerSel].forEach(sel => sel.innerHTML = "");
+      adjSel.innerHTML = "";
+
+      accounts.forEach(acc => {
+        debitSel.innerHTML += `<option value="${acc}">${acc}</option>`;
+        creditSel.innerHTML += `<option value="${acc}">${acc}</option>`;
+        ledgerSel.innerHTML += `<option value="${acc}">${acc}</option>`;
+      });
+
+      adjustmentSeeds.forEach(a => {
+        adjSel.innerHTML += `<option value="${a.id}">${a.section} · ${a.name}</option>`;
+      });
+
+      document.getElementById("entryDebit").value = accounts[0];
+      document.getElementById("entryCredit").value = accounts[4];
+      document.getElementById("selectedLedger").value = accounts[0];
+      document.getElementById("adjustmentItem").value = adjustmentSeeds[0].id;
+      document.getElementById("adjustmentMemo").value = adjustmentSeeds[0].defaultMemo;
+      document.getElementById("adjustmentItem").addEventListener("change", function() {
+        const found = adjustmentSeeds.find(x => x.id == this.value);
+        document.getElementById("adjustmentMemo").value = found ? found.defaultMemo : "";
+      });
+    }
+
+    function addEntry() {
+      const date = document.getElementById("entryDate").value;
+      const description = document.getElementById("entryDescription").value.trim();
+      const debit = document.getElementById("entryDebit").value;
+      const credit = document.getElementById("entryCredit").value;
+      const amount = Number(document.getElementById("entryAmount").value);
+      const vatType = document.getElementById("entryVatType").value;
+
+      if (!description || !amount) {
+        alert("적요와 금액을 입력해 주세요.");
+        return;
+      }
+
+      state.entries.unshift({
+        id: Date.now(),
+        date,
+        description,
+        debit,
+        credit,
+        amount,
+        vatType
+      });
+
+      document.getElementById("entryDescription").value = "";
+      document.getElementById("entryAmount").value = "";
+      renderAll();
+    }
+
+    function deleteEntry(id) {
+      state.entries = state.entries.filter(e => e.id !== id);
+      renderAll();
+    }
+
+    function addVatSale() {
+      const date = document.getElementById("vatSaleDate").value;
+      const client = document.getElementById("vatSaleClient").value.trim();
+      const supplyAmount = Number(document.getElementById("vatSaleSupply").value);
+      const taxAmount = Number(document.getElementById("vatSaleTax").value);
+
+      if (!client || !supplyAmount || !taxAmount) {
+        alert("매출 등록 항목을 모두 입력해 주세요.");
+        return;
+      }
+
+      state.vatSales.unshift({
+        id: Date.now(),
+        date,
+        client,
+        supplyAmount,
+        taxAmount
+      });
+
+      document.getElementById("vatSaleClient").value = "";
+      document.getElementById("vatSaleSupply").value = "";
+      document.getElementById("vatSaleTax").value = "";
+      renderAll();
+    }
+
+    function deleteVatSale(id) {
+      state.vatSales = state.vatSales.filter(v => v.id !== id);
+      renderAll();
+    }
+
+    function addVatPurchase() {
+      const date = document.getElementById("vatPurchaseDate").value;
+      const vendor = document.getElementById("vatPurchaseVendor").value.trim();
+      const supplyAmount = Number(document.getElementById("vatPurchaseSupply").value);
+      const taxAmount = Number(document.getElementById("vatPurchaseTax").value);
+      const deductible = document.getElementById("vatPurchaseDeductible").value;
+      const reason = document.getElementById("vatPurchaseReason").value.trim();
+
+      if (!vendor || !supplyAmount || !taxAmount) {
+        alert("매입 등록 항목을 모두 입력해 주세요.");
+        return;
+      }
+
+      state.vatPurchases.unshift({
+        id: Date.now(),
+        date,
+        vendor,
+        supplyAmount,
+        taxAmount,
+        deductible,
+        reason
+      });
+
+      document.getElementById("vatPurchaseVendor").value = "";
+      document.getElementById("vatPurchaseSupply").value = "";
+      document.getElementById("vatPurchaseTax").value = "";
+      document.getElementById("vatPurchaseReason").value = "";
+      document.getElementById("vatPurchaseDeductible").value = "공제";
+      renderAll();
+    }
+
+    function deleteVatPurchase(id) {
+      state.vatPurchases = state.vatPurchases.filter(v => v.id !== id);
+      renderAll();
+    }
+
+    function addAdjustment() {
+      const bookProfit = Number(document.getElementById("bookProfit").value || 0);
+      const itemId = Number(document.getElementById("adjustmentItem").value);
+      const amount = Number(document.getElementById("adjustmentAmount").value);
+      const disposition = document.getElementById("adjustmentDisposition").value;
+      const memo = document.getElementById("adjustmentMemo").value.trim();
+
+      const found = adjustmentSeeds.find(a => a.id === itemId);
+      if (!found || !amount) {
+        alert("조정항목과 금액을 확인해 주세요.");
+        return;
+      }
+
+      state.bookProfit = bookProfit;
+
+      state.adjustments.unshift({
+        id: Date.now(),
+        section: found.section,
+        name: found.name,
+        type: found.type,
+        amount,
+        disposition,
+        memo
+      });
+
+      document.getElementById("adjustmentAmount").value = "";
+      renderAll();
+    }
+
+    function deleteAdjustment(id) {
+      state.adjustments = state.adjustments.filter(a => a.id !== id);
+      renderAll();
+    }
+
+    function getJournalSummary() {
+      const sales = state.entries.filter(e => e.credit === "매출").reduce((sum, e) => sum + Number(e.amount), 0);
+      const expenseAccounts = ["급여","임차료","접대비","광고선전비","복리후생비","감가상각비","매출원가"];
+      const expenses = state.entries.filter(e => expenseAccounts.includes(e.debit)).reduce((sum, e) => sum + Number(e.amount), 0);
+      const assets = state.entries.filter(e => ["현금","보통예금","외상매출금","상품","비품","부가세대급금","미수금"].includes(e.debit)).reduce((sum, e) => sum + Number(e.amount), 0);
+      const liabilities = state.entries.filter(e => ["미지급금","부가세예수금"].includes(e.credit)).reduce((sum, e) => sum + Number(e.amount), 0);
+      return { sales, expenses, assets, liabilities };
+    }
+
+    function getLedgerMap() {
+      const map = {};
+      accounts.forEach(acc => map[acc] = []);
+
+      state.entries.forEach(e => {
+        map[e.debit].push({
+          date: e.date,
+          description: e.description,
+          debit: Number(e.amount),
+          credit: 0
+        });
+        map[e.credit].push({
+          date: e.date,
+          description: e.description,
+          debit: 0,
+          credit: Number(e.amount)
+        });
+      });
+
+      Object.keys(map).forEach(acc => {
+        let running = 0;
+        const normal = ["자산","비용"].includes(accountTypes[acc]) ? "debit" : "credit";
+        map[acc] = map[acc].map(row => {
+          running += normal === "debit" ? (row.debit - row.credit) : (row.credit - row.debit);
+          return { ...row, balance: running };
+        });
+      });
+
+      return map;
+    }
+
+    function getTrialBalance() {
+      const ledgerMap = getLedgerMap();
+      return accounts.map(acc => {
+        const rows = ledgerMap[acc] || [];
+        const debitTotal = rows.reduce((sum, r) => sum + r.debit, 0);
+        const creditTotal = rows.reduce((sum, r) => sum + r.credit, 0);
+        const type = accountTypes[acc] || "자산";
+        const balance = ["자산","비용"].includes(type) ? debitTotal - creditTotal : creditTotal - debitTotal;
+        return { acc, type, debitTotal, creditTotal, balance };
+      });
+    }
+
+    function getVatSummary() {
+      const salesTax = state.vatSales.reduce((sum, v) => sum + Number(v.taxAmount), 0);
+      const deductibleTax = state.vatPurchases.filter(v => v.deductible === "공제").reduce((sum, v) => sum + Number(v.taxAmount), 0);
+      const nonDeductibleTax = state.vatPurchases.filter(v => v.deductible === "불공제").reduce((sum, v) => sum + Number(v.taxAmount), 0);
+      const payable = salesTax - deductibleTax + nonDeductibleTax;
+      return { salesTax, deductibleTax, nonDeductibleTax, payable };
+    }
+
+    function getAdjustmentSummary() {
+      const plus = state.adjustments.filter(a => a.type === "가산").reduce((sum, a) => sum + Number(a.amount), 0);
+      const minus = state.adjustments.filter(a => a.type === "차감").reduce((sum, a) => sum + Number(a.amount), 0);
+      const bookProfit = Number(state.bookProfit || document.getElementById("bookProfit")?.value || 0);
+      const taxableBase = bookProfit + plus - minus;
+      return { plus, minus, bookProfit, taxableBase };
+    }
+
+    function getDailyQuestions() {
+      const key = todayStr().replace(/-/g, "");
+      const shuffled = [...seedQuestions].sort((a, b) => {
+        const x = (a.id * Number(key)) % 97;
+        const y = (b.id * Number(key)) % 97;
+        return x - y;
+      });
+      return shuffled.slice(0, 3);
+    }
+
+    function submitQuizAnswer() {
+      const daily = getDailyQuestions();
+      const q = daily[selectedQuizIndex];
+      if (currentQuizSelected === null) {
+        alert("보기 하나를 선택해 주세요.");
+        return;
+      }
+      state.quizAnswers[todayStr()] = state.quizAnswers[todayStr()] || {};
+      state.quizAnswers[todayStr()][q.id] = currentQuizSelected;
+
+      const ok = currentQuizSelected === q.answer;
+      const box = document.getElementById("quizExplanation");
+      box.style.display = "block";
+      box.innerHTML = `
+        <strong>${ok ? "정답입니다." : "오답입니다."}</strong><br><br>
+        정답: ${q.answer + 1}번 - ${q.options[q.answer]}<br><br>
+        해설: ${q.explanation}
+      `;
+      renderQuizSummary();
+      renderDashboard();
+    }
+
+    function nextQuiz() {
+      const daily = getDailyQuestions();
+      selectedQuizIndex = (selectedQuizIndex + 1) % daily.length;
+      currentQuizSelected = null;
+      renderQuiz();
+    }
+
+    function renderDashboard() {
+      const adj = getAdjustmentSummary();
+      const vat = getVatSummary();
+      const journal = getJournalSummary();
+      const daily = getDailyQuestions();
+      const answers = (state.quizAnswers[todayStr()] || {});
+      let correct = 0;
+      daily.forEach(q => {
+        if (answers[q.id] === q.answer) correct++;
+      });
+
+      document.getElementById("statEntries").textContent = `${state.entries.length}건`;
+      document.getElementById("statPlus").textContent = `${currency(adj.plus)}원`;
+      document.getElementById("statMinus").textContent = `${currency(adj.minus)}원`;
+      document.getElementById("statQuiz").textContent = `${correct}/3`;
+
+      document.getElementById("summaryFinance").innerHTML = `
+        추정 매출: ${currency(journal.sales)}원<br>
+        추정 비용: ${currency(journal.expenses)}원<br>
+        추정 자산: ${currency(journal.assets)}원<br>
+        추정 부채: ${currency(journal.liabilities)}원<br><br>
+        회계상 이익: ${currency(adj.bookProfit)}원<br>
+        과세표준 기초: ${currency(adj.taxableBase)}원
+      `;
+
+      document.getElementById("summaryVat").innerHTML = `
+        매출세액 합계: ${currency(vat.salesTax)}원<br>
+        공제매입세액: ${currency(vat.deductibleTax)}원<br>
+        불공제매입세액: ${currency(vat.nonDeductibleTax)}원<br><br>
+        납부예상세액: ${currency(vat.payable)}원
+      `;
+    }
+
+    function renderTerms() {
+      const keyword = document.getElementById("termSearch").value.trim().toLowerCase();
+      const filtered = seedTerms.filter(t =>
+        [t.term, t.definition, t.category, t.examTip, t.practical].join(" ").toLowerCase().includes(keyword)
+      );
+      const wrap = document.getElementById("termList");
+      wrap.innerHTML = filtered.map(t => `
+        <div class="term-box">
+          <div class="term-title"><span class="badge gray">${t.category}</span>${t.term}</div>
+          <div style="font-size:14px; line-height:1.7;">
+            <strong>정의:</strong> ${t.definition}<br>
+            <strong>시험 포인트:</strong> ${t.examTip}<br>
+            <strong>실무 포인트:</strong> ${t.practical}
+          </div>
+        </div>
+      `).join("") || `<div class="muted">검색 결과가 없습니다.</div>`;
+    }
+
+    function renderJournal() {
+      const s = getJournalSummary();
+      document.getElementById("journalSummary").innerHTML = `
+        추정 매출: ${currency(s.sales)}원<br>
+        추정 비용: ${currency(s.expenses)}원<br>
+        추정 자산: ${currency(s.assets)}원<br>
+        추정 부채: ${currency(s.liabilities)}원
+      `;
+
+      const wrap = document.getElementById("entryList");
+      if (!state.entries.length) {
+        wrap.innerHTML = `<div class="muted">아직 입력된 분개가 없습니다.</div>`;
+        return;
+      }
+      wrap.innerHTML = state.entries.map(e => `
+        <div class="list-item">
+          <div class="list-main">
+            <strong>${e.description}</strong><br>
+            ${e.date} · 차변 ${e.debit} / 대변 ${e.credit}<br>
+            ${currency(e.amount)}원 · ${e.vatType}
+          </div>
+          <button class="btn danger" onclick="deleteEntry(${e.id})">삭제</button>
+        </div>
+      `).join("");
+    }
+
+    function renderLedger() {
+      const selected = document.getElementById("selectedLedger").value;
+      const map = getLedgerMap();
+      const rows = map[selected] || [];
+      document.getElementById("ledgerTitle").textContent = `${selected} 계정 원장`;
+
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>날짜</th>
+              <th>적요</th>
+              <th class="right">차변</th>
+              <th class="right">대변</th>
+              <th class="right">잔액</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              rows.length ? rows.map(r => `
+                <tr>
+                  <td>${r.date}</td>
+                  <td>${r.description}</td>
+                  <td class="right">${currency(r.debit)}</td>
+                  <td class="right">${currency(r.credit)}</td>
+                  <td class="right">${currency(r.balance)}</td>
+                </tr>
+              `).join("") : `<tr><td colspan="5">전기 내역이 없습니다.</td></tr>`
+            }
+          </tbody>
+        </table>
+      `;
+      document.getElementById("ledgerTable").innerHTML = html;
+    }
+
+    function renderTrial() {
+      const rows = getTrialBalance();
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>계정과목</th>
+              <th>구분</th>
+              <th class="right">차변합계</th>
+              <th class="right">대변합계</th>
+              <th class="right">잔액</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${r.acc}</td>
+                <td>${r.type}</td>
+                <td class="right">${currency(r.debitTotal)}</td>
+                <td class="right">${currency(r.creditTotal)}</td>
+                <td class="right">${currency(r.balance)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+      document.getElementById("trialTable").innerHTML = html;
+    }
+
+    function renderVat() {
+      const vat = getVatSummary();
+      document.getElementById("vatSummaryBox").innerHTML = `
+        매출세액 합계: ${currency(vat.salesTax)}원<br>
+        공제매입세액: ${currency(vat.deductibleTax)}원<br>
+        불공제매입세액: ${currency(vat.nonDeductibleTax)}원<br><br>
+        <strong>납부예상세액: ${currency(vat.payable)}원</strong><br><br>
+        계산식: 매출세액 - 공제매입세액 + 불공제매입세액
+      `;
+
+      const salesWrap = document.getElementById("vatSalesList");
+      salesWrap.innerHTML = state.vatSales.length
+        ? state.vatSales.map(v => `
+            <div class="list-item">
+              <div class="list-main">
+                <strong>${v.client}</strong><br>
+                ${v.date} · 공급가액 ${currency(v.supplyAmount)}원<br>
+                세액 ${currency(v.taxAmount)}원
+              </div>
+              <button class="btn danger" onclick="deleteVatSale(${v.id})">삭제</button>
+            </div>
+          `).join("")
+        : `<div class="muted">등록된 매출 내역이 없습니다.</div>`;
+
+      const purWrap = document.getElementById("vatPurchasesList");
+      purWrap.innerHTML = state.vatPurchases.length
+        ? state.vatPurchases.map(v => `
+            <div class="list-item">
+              <div class="list-main">
+                <span class="badge ${v.deductible === "공제" ? "" : "gray"}">${v.deductible}</span>
+                <strong>${v.vendor}</strong><br>
+                ${v.date} · 공급가액 ${currency(v.supplyAmount)}원<br>
+                세액 ${currency(v.taxAmount)}원 · 사유 ${v.reason || "-"}
+              </div>
+              <button class="btn danger" onclick="deleteVatPurchase(${v.id})">삭제</button>
+            </div>
+          `).join("")
+        : `<div class="muted">등록된 매입 내역이 없습니다.</div>`;
+    }
+
+    function renderAdjustment() {
+      if (document.getElementById("bookProfit")) {
+        document.getElementById("bookProfit").value = state.bookProfit || "";
+      }
+
+      const adj = getAdjustmentSummary();
+      document.getElementById("adjustmentSummary").innerHTML = `
+        회계상 이익: ${currency(adj.bookProfit)}원<br>
+        가산조정: ${currency(adj.plus)}원<br>
+        차감조정: ${currency(adj.minus)}원<br><br>
+        <strong>과세표준 기초: ${currency(adj.taxableBase)}원</strong><br><br>
+        계산식: 회계상 이익 + 가산조정 - 차감조정
+      `;
+
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th>항목명</th>
+              <th class="right">금액</th>
+              <th>처분</th>
+              <th>메모</th>
+              <th class="right">관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              state.adjustments.length ? state.adjustments.map(a => `
+                <tr>
+                  <td>${a.section}</td>
+                  <td>${a.name}</td>
+                  <td class="right">${currency(a.amount)}</td>
+                  <td>${a.disposition}</td>
+                  <td>${a.memo || ""}</td>
+                  <td class="right"><button class="btn danger" onclick="deleteAdjustment(${a.id})">삭제</button></td>
+                </tr>
+              `).join("") : `<tr><td colspan="6">아직 등록된 조정명세가 없습니다.</td></tr>`
+            }
+          </tbody>
+        </table>
+      `;
+      document.getElementById("adjustmentTable").innerHTML = html;
+    }
+
+    function renderQuiz() {
+      const daily = getDailyQuestions();
+      const q = daily[selectedQuizIndex];
+      if (!q) return;
+
+      document.getElementById("quizProgressText").textContent = `문제 ${selectedQuizIndex + 1} / ${daily.length}`;
+      document.getElementById("quizQuestion").textContent = q.question;
+      document.getElementById("quizYearCategory").textContent = `${q.year}년 예시 · ${q.category}`;
+
+      const optionsWrap = document.getElementById("quizOptions");
+      optionsWrap.innerHTML = q.options.map((opt, idx) => `
+        <div class="quiz-option ${currentQuizSelected === idx ? "selected" : ""}" onclick="selectQuizOption(${idx})">
+          ${idx + 1}. ${opt}
+        </div>
+      `).join("");
+
+      const answerBox = document.getElementById("quizExplanation");
+      answerBox.style.display = "none";
+      answerBox.innerHTML = "";
+      renderQuizSummary();
+    }
+
+    function selectQuizOption(idx) {
+      currentQuizSelected = idx;
+      renderQuiz();
+    }
+
+    function renderQuizSummary() {
+      const daily = getDailyQuestions();
+      const answers = state.quizAnswers[todayStr()] || {};
+      let solved = 0;
+      let correct = 0;
+
+      daily.forEach(q => {
+        if (answers[q.id] !== undefined) {
+          solved++;
+          if (answers[q.id] === q.answer) correct++;
+        }
+      });
+
+      document.getElementById("quizSummary").innerHTML = `
+        오늘 출제 문제 수: 3문제<br>
+        푼 문제 수: ${solved}문제<br>
+        정답 수: ${correct}문제<br>
+        오답 수: ${solved - correct}문제<br><br>
+        매일 날짜 기준으로 3문제가 바뀝니다.
+      `;
+    }
+
+    function renderMeta() {
+      document.getElementById("companyNameBox").textContent = state.company.name;
+      document.getElementById("companyCeoBox").textContent = state.company.ceo;
+      document.getElementById("companyYearBox").textContent = state.company.year;
+      document.getElementById("savedAtText").textContent = `마지막 저장: ${state.savedAt || "없음"}`;
+    }
+
+    function renderAll() {
+      renderMeta();
+      renderDashboard();
+      renderTerms();
+      renderJournal();
+      renderLedger();
+      renderTrial();
+      renderVat();
+      renderAdjustment();
+      renderQuiz();
+    }
+
+    function setupNavigation() {
+      document.querySelectorAll(".nav-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+          document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+          btn.classList.add("active");
+          document.getElementById(btn.dataset.page).classList.add("active");
+        });
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadAll();
+      populateBaseInputs();
+      setupNavigation();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
