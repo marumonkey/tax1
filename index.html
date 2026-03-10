@@ -3,42 +3,57 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>전산세무회계 학습 앱</title>
+  <title>전산세무회계 실무형 웹앱</title>
   <style>
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-      background: #f6f8fb;
+      background: #f4f7fb;
       color: #1f2937;
     }
     .app {
       display: grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 280px 1fr;
       min-height: 100vh;
     }
     .sidebar {
-      background: #111827;
+      background: #0f172a;
       color: white;
       padding: 20px;
     }
     .brand {
       font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 8px;
+      font-weight: 800;
+      margin-bottom: 6px;
     }
     .sub {
       font-size: 13px;
       color: #cbd5e1;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      line-height: 1.5;
     }
     .company-box {
       background: rgba(255,255,255,0.08);
-      padding: 12px;
       border-radius: 14px;
-      margin-bottom: 18px;
+      padding: 12px;
+      margin-bottom: 16px;
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.6;
+    }
+    .toggle-box {
+      background: rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      gap: 8px;
     }
     .nav button {
       width: 100%;
@@ -52,14 +67,11 @@
       margin-bottom: 8px;
       font-size: 15px;
     }
-    .nav button.active {
-      background: #2563eb;
-    }
-    .nav button:hover {
-      background: rgba(255,255,255,0.1);
-    }
+    .nav button.active { background: #2563eb; }
+    .nav button:hover { background: rgba(255,255,255,0.1); }
+
     .side-actions {
-      margin-top: 18px;
+      margin-top: 16px;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
@@ -69,24 +81,16 @@
       border-radius: 12px;
       padding: 10px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
     }
     .btn-save { background: #10b981; color: white; }
     .btn-reset { background: #e5e7eb; color: #111827; }
 
-    .content {
-      padding: 22px;
-    }
-    .page {
-      display: none;
-    }
-    .page.active {
-      display: block;
-    }
-    .grid {
-      display: grid;
-      gap: 16px;
-    }
+    .content { padding: 22px; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .grid { display: grid; gap: 16px; }
     .grid-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
     .grid-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
     .grid-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
@@ -95,45 +99,50 @@
       background: white;
       border-radius: 18px;
       padding: 18px;
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
-      border: 1px solid #eef2f7;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      border: 1px solid #eaf0f7;
     }
     .card h3 {
       margin: 0 0 14px;
       font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
     }
-    .stat-title {
-      font-size: 13px;
-      color: #64748b;
-      margin-bottom: 8px;
-    }
-    .stat-value {
-      font-size: 28px;
+
+    .help-btn {
+      border: 0;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 10px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 12px;
       font-weight: 700;
     }
-    .muted {
-      color: #64748b;
-      font-size: 13px;
-    }
+
+    .stat-title { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 800; }
+    .muted { color: #64748b; font-size: 13px; }
 
     .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0,1fr));
       gap: 12px;
     }
-    .form-grid-1 {
-      display: grid;
-      gap: 12px;
-    }
+    .form-grid-1 { display: grid; gap: 12px; }
+
     input, select, textarea {
       width: 100%;
       padding: 12px 13px;
-      border: 1px solid #dbe3ee;
+      border: 1px solid #d9e2ef;
       border-radius: 12px;
       font-size: 14px;
       background: white;
     }
-    textarea { min-height: 92px; resize: vertical; }
+    textarea { min-height: 90px; resize: vertical; }
+
     .btn {
       border: 0;
       background: #2563eb;
@@ -141,21 +150,11 @@
       border-radius: 12px;
       padding: 12px 14px;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
     }
-    .btn.secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-    .btn.danger {
-      background: #ef4444;
-      color: white;
-    }
-    .btn-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+    .btn.secondary { background: #e5e7eb; color: #111827; }
+    .btn.danger { background: #ef4444; color: white; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
     .list-item {
       border: 1px solid #e5e7eb;
@@ -167,27 +166,23 @@
       gap: 12px;
       align-items: center;
     }
-    .list-main {
-      font-size: 14px;
-      line-height: 1.6;
-    }
+    .list-main { font-size: 14px; line-height: 1.65; }
+
     .badge {
       display: inline-block;
       padding: 4px 10px;
       border-radius: 999px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       background: #eff6ff;
       color: #1d4ed8;
       margin-right: 6px;
     }
-    .badge.gray {
-      background: #f1f5f9;
-      color: #334155;
-    }
-    .table-wrap {
-      overflow-x: auto;
-    }
+    .badge.gray { background: #f1f5f9; color: #334155; }
+    .badge.red { background: #fef2f2; color: #b91c1c; }
+    .badge.green { background: #ecfdf5; color: #047857; }
+
+    .table-wrap { overflow-x: auto; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -201,15 +196,14 @@
       text-align: left;
       font-size: 14px;
       white-space: nowrap;
+      vertical-align: top;
     }
     th {
       background: #f8fafc;
       color: #334155;
-      font-weight: 700;
+      font-weight: 800;
     }
-    td.right, th.right {
-      text-align: right;
-    }
+    td.right, th.right { text-align: right; }
 
     .term-box {
       border: 1px solid #e5e7eb;
@@ -217,22 +211,18 @@
       padding: 14px;
       margin-bottom: 10px;
     }
-    .term-title {
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
+    .term-title { font-weight: 800; margin-bottom: 6px; }
+
     .highlight-box {
       background: #f8fafc;
       border-radius: 14px;
       padding: 14px;
       font-size: 14px;
       color: #475569;
+      line-height: 1.7;
     }
 
-    .quiz-options {
-      display: grid;
-      gap: 10px;
-    }
+    .quiz-options { display: grid; gap: 10px; }
     .quiz-option {
       border: 1px solid #dbe3ee;
       border-radius: 14px;
@@ -245,19 +235,63 @@
       border-color: #2563eb;
     }
 
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
     .footer-note {
-      margin-top: 10px;
+      margin-top: 12px;
       font-size: 12px;
       color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.46);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 999;
+    }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(760px, 100%);
+      max-height: 82vh;
+      overflow-y: auto;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .modal-content {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #334155;
+      white-space: pre-line;
+    }
+    .modal-actions {
+      margin-top: 16px;
+      display: flex;
+      justify-content: flex-end;
     }
 
     @media (max-width: 980px) {
-      .app {
-        grid-template-columns: 1fr;
-      }
-      .grid-2, .grid-3, .grid-4, .form-grid {
-        grid-template-columns: 1fr;
-      }
+      .app { grid-template-columns: 1fr; }
+      .grid-2, .grid-3, .grid-4, .form-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -265,12 +299,24 @@
   <div class="app">
     <aside class="sidebar">
       <div class="brand">전산세무회계 앱</div>
-      <div class="sub">시험용 + 실무확장형 웹앱</div>
+      <div class="sub">실무 입력 + 학습 보조 + 검토 흐름까지 포함한 웹앱형 MVP</div>
 
       <div class="company-box">
         <div><strong id="companyNameBox">샘플회사</strong></div>
         <div>대표: <span id="companyCeoBox">홍길동</span></div>
         <div>사업연도: <span id="companyYearBox">2026</span></div>
+      </div>
+
+      <div class="toggle-box">
+        <strong>화면 옵션</strong>
+        <div class="toggle-row">
+          <span>예시/설명 팝업 사용</span>
+          <input type="checkbox" id="useHelpPopupToggle" checked onchange="toggleHelpMode()" />
+        </div>
+        <div class="toggle-row">
+          <span>실무형 예시 카드 표시</span>
+          <input type="checkbox" id="showExamplesToggle" checked onchange="toggleExamples()" />
+        </div>
       </div>
 
       <div class="nav">
@@ -298,7 +344,7 @@
           <div class="card">
             <div class="stat-title">등록 분개</div>
             <div class="stat-value" id="statEntries">0건</div>
-            <div class="muted">입력된 분개 수</div>
+            <div class="muted">실무 전표성 입력 건수</div>
           </div>
           <div class="card">
             <div class="stat-title">가산조정</div>
@@ -313,13 +359,16 @@
           <div class="card">
             <div class="stat-title">오늘 퀴즈</div>
             <div class="stat-value" id="statQuiz">0/3</div>
-            <div class="muted">정답 수</div>
+            <div class="muted">랜덤 실전형 문제</div>
           </div>
         </div>
 
         <div class="grid grid-3" style="margin-top:16px;">
           <div class="card">
-            <h3>회사 정보</h3>
+            <h3>
+              회사 정보
+              <button class="help-btn" onclick="openHelp('company')">설명</button>
+            </h3>
             <div class="form-grid-1">
               <input id="companyName" placeholder="회사명" />
               <input id="companyCeo" placeholder="대표자" />
@@ -330,20 +379,40 @@
           </div>
 
           <div class="card">
-            <h3>재무/세무 요약</h3>
+            <h3>
+              재무/세무 요약
+              <button class="help-btn" onclick="openHelp('dashboardFinance')">설명</button>
+            </h3>
             <div class="highlight-box" id="summaryFinance"></div>
           </div>
 
           <div class="card">
-            <h3>부가세 요약</h3>
+            <h3>
+              부가세 요약
+              <button class="help-btn" onclick="openHelp('dashboardVat')">설명</button>
+            </h3>
             <div class="highlight-box" id="summaryVat"></div>
+          </div>
+        </div>
+
+        <div class="card examples-block" style="margin-top:16px;">
+          <h3>실무형 사용 흐름 예시</h3>
+          <div class="highlight-box">
+            1. 분개입력에서 적요·거래처·증빙번호·증빙구분까지 입력합니다.<br>
+            2. 전기원장에서 계정별 이동을 확인합니다.<br>
+            3. 부가세 공제판정에서 세금계산서 수취 여부와 불공제 사유를 검토합니다.<br>
+            4. 조정명세서에서 유보/환입 여부와 기말잔액을 관리합니다.<br>
+            5. 필요하면 문제풀이로 시험형 감각도 유지합니다.
           </div>
         </div>
       </section>
 
       <section id="glossary" class="page">
         <div class="card">
-          <h3>용어사전</h3>
+          <h3>
+            용어사전
+            <button class="help-btn" onclick="openHelp('glossary')">설명</button>
+          </h3>
           <input id="termSearch" placeholder="용어, 설명, 카테고리 검색" oninput="renderTerms()" />
           <div style="margin-top:14px;" id="termList"></div>
         </div>
@@ -352,10 +421,15 @@
       <section id="journal" class="page">
         <div class="grid grid-2">
           <div class="card">
-            <h3>분개 입력</h3>
+            <h3>
+              분개 입력
+              <button class="help-btn" onclick="openHelp('journal')">설명</button>
+            </h3>
             <div class="form-grid">
               <input type="date" id="entryDate" />
               <input id="entryDescription" placeholder="적요" />
+              <input id="entryClient" placeholder="거래처" />
+              <input id="entryClientBizNo" placeholder="거래처 사업자번호" />
               <select id="entryDebit"></select>
               <select id="entryCredit"></select>
               <input type="number" id="entryAmount" placeholder="금액" />
@@ -365,6 +439,21 @@
                 <option value="영세율">영세율</option>
                 <option value="불공제">불공제</option>
               </select>
+              <select id="entryEvidenceType">
+                <option value="세금계산서">세금계산서</option>
+                <option value="계산서">계산서</option>
+                <option value="카드매출전표">카드매출전표</option>
+                <option value="현금영수증">현금영수증</option>
+                <option value="간이영수증">간이영수증</option>
+                <option value="없음">없음</option>
+              </select>
+              <input id="entryEvidenceNo" placeholder="증빙번호" />
+              <select id="entryReviewStatus">
+                <option value="검토전">검토전</option>
+                <option value="검토중">검토중</option>
+                <option value="확정">확정</option>
+              </select>
+              <textarea id="entryNote" placeholder="비고 / 실무 메모"></textarea>
             </div>
             <div class="btn-row" style="margin-top:12px;">
               <button class="btn" onclick="addEntry()">분개 추가</button>
@@ -372,8 +461,21 @@
           </div>
 
           <div class="card">
-            <h3>분개 집계 요약</h3>
+            <h3>
+              분개 집계 요약
+              <button class="help-btn" onclick="openHelp('journalSummary')">설명</button>
+            </h3>
             <div class="highlight-box" id="journalSummary"></div>
+          </div>
+        </div>
+
+        <div class="card examples-block" style="margin-top:16px;">
+          <h3>실무 입력 예시</h3>
+          <div class="highlight-box">
+            적요: 상품 매입 / 거래처: 한빛상사 / 차변: 상품 / 대변: 미지급금 / 금액: 1,100,000<br>
+            증빙구분: 세금계산서 / 증빙번호: 2026-0310-01 / 검토상태: 검토중<br><br>
+            적요: 접대성 식사비 / 차변: 접대비 / 대변: 보통예금 / 부가세: 불공제<br>
+            비고에 “부가세 불공제 검토 필요”를 남겨두면 실무 검토가 편합니다.
           </div>
         </div>
 
@@ -386,7 +488,10 @@
       <section id="ledger" class="page">
         <div class="grid grid-2">
           <div class="card">
-            <h3>전기 원장</h3>
+            <h3>
+              전기 원장
+              <button class="help-btn" onclick="openHelp('ledger')">설명</button>
+            </h3>
             <select id="selectedLedger" onchange="renderLedger()"></select>
             <div class="highlight-box" style="margin-top:12px;">
               분개 입력 자료를 기준으로 자동 전기됩니다.<br>
@@ -403,7 +508,10 @@
 
       <section id="trial" class="page">
         <div class="card">
-          <h3>합계잔액시산표</h3>
+          <h3>
+            합계잔액시산표
+            <button class="help-btn" onclick="openHelp('trial')">설명</button>
+          </h3>
           <div class="table-wrap" id="trialTable"></div>
         </div>
       </section>
@@ -411,35 +519,73 @@
       <section id="vat" class="page">
         <div class="grid grid-3">
           <div class="card">
-            <h3>매출 등록</h3>
+            <h3>
+              매출 등록
+              <button class="help-btn" onclick="openHelp('vatSales')">설명</button>
+            </h3>
             <div class="form-grid-1">
               <input type="date" id="vatSaleDate" />
               <input id="vatSaleClient" placeholder="거래처" />
+              <input id="vatSaleBizNo" placeholder="거래처 사업자번호" />
               <input type="number" id="vatSaleSupply" placeholder="공급가액" />
               <input type="number" id="vatSaleTax" placeholder="세액" />
+              <select id="vatSaleProofType">
+                <option value="세금계산서">세금계산서</option>
+                <option value="카드매출전표">카드매출전표</option>
+                <option value="현금영수증">현금영수증</option>
+                <option value="기타">기타</option>
+              </select>
               <button class="btn" onclick="addVatSale()">매출 추가</button>
             </div>
           </div>
 
           <div class="card">
-            <h3>매입 등록 + 공제판정</h3>
+            <h3>
+              매입 등록 + 공제판정
+              <button class="help-btn" onclick="openHelp('vatPurchases')">설명</button>
+            </h3>
             <div class="form-grid-1">
               <input type="date" id="vatPurchaseDate" />
               <input id="vatPurchaseVendor" placeholder="거래처" />
+              <input id="vatPurchaseBizNo" placeholder="거래처 사업자번호" />
               <input type="number" id="vatPurchaseSupply" placeholder="공급가액" />
               <input type="number" id="vatPurchaseTax" placeholder="세액" />
+              <select id="vatInvoiceReceived">
+                <option value="수취">세금계산서 수취</option>
+                <option value="미수취">세금계산서 미수취</option>
+              </select>
+              <select id="vatPurchaseProofType">
+                <option value="세금계산서">세금계산서</option>
+                <option value="카드매출전표">카드매출전표</option>
+                <option value="현금영수증">현금영수증</option>
+                <option value="간이영수증">간이영수증</option>
+                <option value="기타">기타</option>
+              </select>
               <select id="vatPurchaseDeductible">
                 <option value="공제">공제</option>
                 <option value="불공제">불공제</option>
               </select>
-              <input id="vatPurchaseReason" placeholder="판정 사유 (예: 접대비, 비영업용 승용차)" />
+              <input id="vatPurchaseReason" placeholder="판정 사유 (예: 접대비, 비영업용 승용차, 면세사업 관련)" />
               <button class="btn" onclick="addVatPurchase()">매입 추가</button>
             </div>
           </div>
 
           <div class="card">
-            <h3>부가세 요약</h3>
+            <h3>
+              부가세 요약
+              <button class="help-btn" onclick="openHelp('vatSummary')">설명</button>
+            </h3>
             <div class="highlight-box" id="vatSummaryBox"></div>
+          </div>
+        </div>
+
+        <div class="card examples-block" style="margin-top:16px;">
+          <h3>부가세 실무 판단 예시</h3>
+          <div class="highlight-box">
+            접대성 식사비 + 카드전표 수취 → 일반적으로 불공제 가능성 검토<br>
+            비영업용 소형승용차 관련 지출 → 불공제<br>
+            원재료 매입 + 세금계산서 수취 → 공제 가능<br>
+            면세사업 관련 매입 → 불공제
           </div>
         </div>
 
@@ -459,25 +605,44 @@
       <section id="adjustment" class="page">
         <div class="grid grid-2">
           <div class="card">
-            <h3>조정명세 입력</h3>
-            <div class="form-grid-1">
+            <h3>
+              조정명세 입력
+              <button class="help-btn" onclick="openHelp('adjustment')">설명</button>
+            </h3>
+            <div class="form-grid">
               <input type="number" id="bookProfit" placeholder="회계상 이익" />
               <select id="adjustmentItem"></select>
-              <input type="number" id="adjustmentAmount" placeholder="금액" />
               <select id="adjustmentDisposition">
                 <option value="유보">유보</option>
                 <option value="유보환입">유보환입</option>
                 <option value="사외유출">사외유출</option>
                 <option value="기타">기타</option>
               </select>
-              <textarea id="adjustmentMemo" placeholder="메모 또는 설명"></textarea>
+              <input type="number" id="adjustmentOpening" placeholder="기초잔액" />
+              <input type="number" id="adjustmentOccurrence" placeholder="당기발생" />
+              <input type="number" id="adjustmentReversal" placeholder="당기환입" />
+              <textarea id="adjustmentMemo" placeholder="메모 / 실무 검토사항"></textarea>
+            </div>
+            <div class="btn-row" style="margin-top:12px;">
               <button class="btn" onclick="addAdjustment()">조정 추가</button>
             </div>
           </div>
 
           <div class="card">
-            <h3>과세표준 기초 계산</h3>
+            <h3>
+              과세표준 기초 계산
+              <button class="help-btn" onclick="openHelp('adjustmentSummary')">설명</button>
+            </h3>
             <div class="highlight-box" id="adjustmentSummary"></div>
+          </div>
+        </div>
+
+        <div class="card examples-block" style="margin-top:16px;">
+          <h3>이중조정 실무 예시</h3>
+          <div class="highlight-box">
+            감가상각비 한도초과 / 처분: 유보 / 기초잔액: 2,000,000 / 당기발생: 500,000 / 당기환입: 300,000<br>
+            기말잔액 = 2,200,000<br><br>
+            이 구조를 넣어두면 시험형 입력도 가능하고, 실무형 유보관리 느낌도 낼 수 있습니다.
           </div>
         </div>
 
@@ -490,9 +655,12 @@
       <section id="quiz" class="page">
         <div class="grid grid-2">
           <div class="card">
-            <h3>오늘의 3문제</h3>
+            <h3>
+              오늘의 3문제
+              <button class="help-btn" onclick="openHelp('quiz')">설명</button>
+            </h3>
             <div class="muted" id="quizProgressText"></div>
-            <div style="margin-top:10px;font-size:18px;font-weight:700;" id="quizQuestion"></div>
+            <div style="margin-top:10px;font-size:18px;font-weight:800;" id="quizQuestion"></div>
             <div class="muted" style="margin-top:8px;" id="quizYearCategory"></div>
             <div class="quiz-options" style="margin-top:14px;" id="quizOptions"></div>
             <div class="btn-row" style="margin-top:14px;">
@@ -512,28 +680,259 @@
       <section id="gpt" class="page">
         <div class="card">
           <h3>GPT 설명 프롬프트</h3>
-          <div class="term-box">손금불산입과 익금불산입의 차이를 초보자도 이해하게 쉽게 설명해줘.</div>
-          <div class="term-box">접대비 한도초과가 왜 손금불산입인지 시험 예시와 실무 예시를 함께 설명해줘.</div>
-          <div class="term-box">감가상각비 한도초과가 유보가 되는 이유와 다음 연도 환입 구조를 설명해줘.</div>
-          <div class="term-box">비영업용 소형승용차 관련 매입세액이 왜 불공제인지 사례로 설명해줘.</div>
-          <div class="term-box">분개와 전기, 시산표의 연결 관계를 아주 쉽게 설명해줘.</div>
-          <div class="term-box">조정명세서에서 유보, 유보환입, 사외유출의 차이를 표로 설명해줘.</div>
+          <div class="term-box">손금불산입과 익금불산입의 차이를 초보자용이 아니라 실무 검토 관점으로 설명해줘.</div>
+          <div class="term-box">접대비 관련 지출의 부가세 불공제와 법인세 손금불산입이 동시에 발생하는 구조를 사례로 설명해줘.</div>
+          <div class="term-box">감가상각비 한도초과의 유보, 환입, 기말잔액 관리 구조를 실무형 표로 설명해줘.</div>
+          <div class="term-box">세금계산서 미수취, 간이영수증, 카드매출전표 수취 시 부가세 공제판정 차이를 설명해줘.</div>
+          <div class="term-box">분개-전기-시산표-부가세-조정명세서가 실제 사무실 업무에서 어떻게 이어지는지 설명해줘.</div>
         </div>
       </section>
     </main>
   </div>
 
+  <div id="helpModal" class="modal" onclick="closeHelpByBackdrop(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div class="modal-title" id="helpTitle">도움말</div>
+      <div class="modal-content" id="helpContent"></div>
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="closeHelp()">닫기</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const STORAGE_KEY = "tax_study_app_v_final";
+    const STORAGE_KEY = "tax_practical_app_v2";
+
+    const helpTexts = {
+      company: {
+        title: "회사 정보",
+        content:
+`이 영역은 단순 소개용이 아니라, 실제로 회사별 자료를 구분해서 관리하는 시작점입니다.
+
+예시
+- 회사명: 미래세무주식회사
+- 대표자: 김대표
+- 사업자번호: 123-45-67890
+- 사업연도: 2026
+
+실무 포인트
+- 실제 서비스로 확장할 때는 회사별 DB 분리 구조가 필요합니다.
+- 지금은 단일 로컬 저장 구조지만 화면상으로는 회사 단위 업무 흐름을 흉내 낼 수 있습니다.`
+      },
+      dashboardFinance: {
+        title: "재무/세무 요약",
+        content:
+`대시보드는 분개 입력과 조정명세 입력 결과를 빠르게 확인하는 곳입니다.
+
+표시 항목
+- 추정 매출
+- 추정 비용
+- 회계상 이익
+- 과세표준 기초
+
+실무 포인트
+- 실제 프로그램에서는 전표 승인 여부, 기표자/검토자 구분, 신고기준일 필터까지 들어갑니다.
+- 현재 버전은 핵심 구조만 남긴 실무형 MVP입니다.`
+      },
+      dashboardVat: {
+        title: "부가세 요약",
+        content:
+`부가세 요약은 매출세액, 공제매입세액, 불공제매입세액을 한 번에 보여줍니다.
+
+계산식
+매출세액 - 공제매입세액 + 불공제매입세액
+
+실무 포인트
+- 공제 여부는 단순 숫자 입력보다 증빙종류, 수취 여부, 사용 목적 검토가 중요합니다.
+- 그래서 이 앱은 매입 입력 시 공제판정 사유를 따로 적게 했습니다.`
+      },
+      glossary: {
+        title: "용어사전",
+        content:
+`용어사전은 초급자용 설명만 하는 공간이 아니라, 시험 포인트와 실무 포인트를 함께 보는 참고 영역입니다.
+
+활용 예시
+- 접대비
+- 손금불산입
+- 유보
+- 유보환입
+- 매입세액불공제
+
+실무 포인트
+- 직원 교육용, 검토 체크리스트 용도로도 사용할 수 있습니다.`
+      },
+      journal: {
+        title: "분개 입력",
+        content:
+`이 화면은 단순 분개 입력이 아니라 실무 전표 입력 느낌으로 구성했습니다.
+
+입력 항목
+- 적요
+- 거래처
+- 거래처 사업자번호
+- 차변/대변 계정
+- 금액
+- 부가세 구분
+- 증빙구분
+- 증빙번호
+- 검토상태
+- 비고
+
+실무 예시
+적요: 상품 매입
+거래처: 한빛상사
+차변: 상품
+대변: 미지급금
+금액: 1,100,000
+증빙구분: 세금계산서
+검토상태: 검토중
+
+실무 포인트
+- 비고란에 “부가세 공제 확인”, “접대비 계정 재검토” 같은 메모를 남기면 나중에 정리하기 좋습니다.`
+      },
+      journalSummary: {
+        title: "분개 집계 요약",
+        content:
+`분개 입력 결과를 바탕으로 추정 매출/비용/자산/부채를 요약합니다.
+
+주의
+- 현재 구조는 계정 분류가 일부 핵심 계정 위주입니다.
+- 정식 실무 버전으로 가려면 계정과목 체계 전체를 더 세분화해야 합니다.`
+      },
+      ledger: {
+        title: "전기 원장",
+        content:
+`전기 원장은 분개 입력 내용을 계정별로 자동 반영한 결과입니다.
+
+흐름
+분개 입력 → 전기 → 시산표
+
+실무 포인트
+- 특정 계정에 이상 잔액이 생기면 전기원장에서 바로 찾는 경우가 많습니다.
+- 현금, 보통예금, 부가세예수금, 접대비 같은 계정은 특히 검토 빈도가 높습니다.`
+      },
+      trial: {
+        title: "합계잔액시산표",
+        content:
+`시산표는 계정별 차변합계, 대변합계, 잔액을 보여주는 핵심 검토표입니다.
+
+실무 포인트
+- 분개 오류
+- 전기 오류
+- 계정 분류 오류
+를 빠르게 찾는 데 유용합니다.
+
+이 MVP에서는 전기 데이터 기준으로 자동 계산됩니다.`
+      },
+      vatSales: {
+        title: "부가세 매출 등록",
+        content:
+`매출세액 등록은 신고서 매출세액 집계의 기초가 됩니다.
+
+입력 항목
+- 거래처
+- 거래처 사업자번호
+- 공급가액
+- 세액
+- 증빙종류
+
+실무 포인트
+- 매출 쪽은 누락 여부가 중요합니다.
+- 세금계산서 발행분, 카드매출, 현금영수증 매출 등을 나눠 관리하는 방향으로 확장 가능합니다.`
+      },
+      vatPurchases: {
+        title: "부가세 매입 공제판정",
+        content:
+`이 영역이 실무형 핵심입니다.
+
+입력 항목
+- 거래처
+- 공급가액
+- 세액
+- 세금계산서 수취 여부
+- 증빙종류
+- 공제/불공제
+- 판정 사유
+
+판정 예시
+- 원재료 매입 + 세금계산서 수취 → 공제 가능
+- 접대성 식사비 → 불공제 검토
+- 비영업용 소형승용차 관련 → 불공제
+- 면세사업 관련 매입 → 불공제
+
+실무 포인트
+- 숫자보다 사유 기록이 중요합니다.
+- 나중에 신고 직전 검토 시 이 메모가 큰 도움이 됩니다.`
+      },
+      vatSummary: {
+        title: "부가세 요약",
+        content:
+`부가세 요약은 신고서 계산의 핵심 흐름을 단순화해서 보여줍니다.
+
+계산식
+매출세액 - 공제매입세액 + 불공제매입세액
+
+실무 포인트
+- 실제 신고서는 더 세부 항목이 있지만, 이 구조만 있어도 기본 검토 흐름은 충분히 익힐 수 있습니다.`
+      },
+      adjustment: {
+        title: "조정명세 입력",
+        content:
+`이 화면은 교육용 한 줄 입력이 아니라 실무형 이중조정 느낌까지 포함했습니다.
+
+입력 항목
+- 조정항목
+- 처분
+- 기초잔액
+- 당기발생
+- 당기환입
+- 기말잔액 자동 계산
+- 메모
+
+예시
+감가상각비 한도초과
+처분: 유보
+기초잔액: 2,000,000
+당기발생: 500,000
+당기환입: 300,000
+기말잔액: 2,200,000
+
+실무 포인트
+- 유보/환입 관리가 들어가면 훨씬 실무형에 가까워집니다.`
+      },
+      adjustmentSummary: {
+        title: "과세표준 기초 계산",
+        content:
+`회계상 이익에 가산조정과 차감조정을 반영한 기초 계산 결과입니다.
+
+계산식
+회계상 이익 + 가산조정 - 차감조정
+
+실무 포인트
+- 실제 신고서는 더 많은 연결표가 필요하지만, 조정명세 검토의 출발점으로는 충분합니다.`
+      },
+      quiz: {
+        title: "오늘의 3문제",
+        content:
+`2020년~2026년 스타일 예시 문제를 날짜 기준으로 섞어서 하루 3문제를 보여줍니다.
+
+실무형 활용
+- 업무 감각 유지
+- 직원 교육
+- 시험 감각 유지
+
+예시 ON/OFF를 꺼도 이 문제 기능은 그대로 사용 가능합니다.`
+      }
+    };
 
     const seedTerms = [
       { id: 1, category: "법인세", term: "손금불산입", definition: "회계상 비용이지만 세법상 손금으로 인정되지 않는 항목입니다.", examTip: "접대비 한도초과, 업무무관비용과 함께 자주 출제됩니다.", practical: "세무조정명세서에서 가산조정으로 반영합니다." },
       { id: 2, category: "법인세", term: "익금불산입", definition: "회계상 수익이지만 세법상 과세하지 않는 항목입니다.", examTip: "수입배당금 익금불산입과 국고보조금이 자주 연결됩니다.", practical: "차감조정으로 반영하며 처분 구분을 확인해야 합니다." },
-      { id: 3, category: "부가가치세", term: "매입세액불공제", definition: "세금계산서를 받아도 공제할 수 없는 매입세액입니다.", examTip: "접대비, 비영업용 소형승용차, 면세사업 관련 매입이 대표적입니다.", practical: "공제판정을 잘못하면 부가세 신고 전체가 틀어집니다." },
+      { id: 3, category: "부가가치세", term: "매입세액불공제", definition: "세금계산서를 받아도 공제할 수 없는 매입세액입니다.", examTip: "접대비, 비영업용 소형승용차, 면세사업 관련 매입이 대표적입니다.", practical: "공제판정을 잘못하면 신고 결과가 틀어질 수 있습니다." },
       { id: 4, category: "재무회계", term: "감가상각", definition: "유형자산의 취득원가를 사용기간에 걸쳐 비용으로 배분하는 회계처리입니다.", examTip: "정액법, 정률법, 내용연수와 함께 출제됩니다.", practical: "회계상 감가상각과 세법상 한도 차이로 세무조정이 발생합니다." },
       { id: 5, category: "부가가치세", term: "영세율", definition: "세율은 0%지만 과세거래에 해당하는 제도입니다.", examTip: "면세와 구별하는 문제로 자주 나옵니다.", practical: "수출 거래와 연결됩니다." },
       { id: 6, category: "법인세", term: "유보", definition: "세무조정 결과가 사외로 유출되지 않고 회사 내부에 남아 있는 처분입니다.", examTip: "감가상각 초과, 충당금 한도초과와 함께 출제됩니다.", practical: "다음 연도 환입 여부를 계속 관리해야 합니다." },
-      { id: 7, category: "법인세", term: "유보환입", definition: "이전 사업연도 유보가 다음 연도에 반대로 조정되는 것입니다.", examTip: "이중조정 문제에서 중요합니다.", practical: "유보 잔액 테이블 관리가 핵심입니다." },
+      { id: 7, category: "법인세", term: "유보환입", definition: "이전 사업연도 유보가 다음 연도에 반대로 조정되는 것입니다.", examTip: "이중조정 문제에서 중요합니다.", practical: "유보 잔액 관리가 핵심입니다." },
       { id: 8, category: "재무회계", term: "전기", definition: "분개 내용을 각 계정원장으로 옮겨 적는 절차입니다.", examTip: "분개→전기→시산표 흐름을 이해해야 합니다.", practical: "계정별 누적 잔액 확인의 핵심입니다." }
     ];
 
@@ -576,9 +975,9 @@
     };
 
     const seedQuestions = [
-      { id: 1, year: 2020, category: "세무조정", question: "접대비 한도초과액은 세무조정 시 어떻게 처리하는가?", options: ["손금산입", "익금불산입", "손금불산입", "익금산입"], answer: 2, explanation: "접대비 한도초과액은 세법상 비용으로 인정되지 않으므로 손금불산입(가산조정)입니다." },
+      { id: 1, year: 2020, category: "세무조정", question: "접대비 한도초과액은 세무조정 시 어떻게 처리하는가?", options: ["손금산입", "익금불산입", "손금불산입", "익금산입"], answer: 2, explanation: "접대비 한도초과액은 세법상 비용으로 인정되지 않으므로 손금불산입입니다." },
       { id: 2, year: 2021, category: "부가가치세", question: "비영업용 소형승용차 관련 매입세액은 어떻게 처리하는가?", options: ["전액 공제", "전액 불공제", "50% 공제", "예정신고만 공제"], answer: 1, explanation: "비영업용 소형승용차 관련 매입세액은 원칙적으로 공제되지 않습니다." },
-      { id: 3, year: 2022, category: "재무회계", question: "감가상각의 본질적 목적은 무엇인가?", options: ["현금관리", "자산원가의 기간배분", "세금감면", "부채감소"], answer: 1, explanation: "감가상각은 자산의 취득원가를 사용기간에 걸쳐 비용으로 배분하는 것입니다." },
+      { id: 3, year: 2022, category: "재무회계", question: "감가상각의 본질적 목적은 무엇인가?", options: ["현금관리", "자산원가의 기간배분", "세금감면", "부채감소"], answer: 1, explanation: "감가상각은 자산 취득원가를 사용기간에 걸쳐 비용으로 배분하는 것입니다." },
       { id: 4, year: 2023, category: "세무조정", question: "대손충당금 한도초과액은 어떻게 조정하는가?", options: ["손금산입", "익금산입", "손금불산입", "익금불산입"], answer: 2, explanation: "세법상 인정 한도를 초과한 충당금은 손금불산입 처리합니다." },
       { id: 5, year: 2024, category: "부가가치세", question: "면세사업 관련 매입세액은 어떻게 처리하는가?", options: ["공제", "불공제", "50% 공제", "이월"], answer: 1, explanation: "면세사업 관련 매입세액은 공제할 수 없습니다." },
       { id: 6, year: 2025, category: "재무회계", question: "다음 중 자산계정에 해당하는 것은 무엇인가?", options: ["매출", "외상매출금", "급여", "이자수익"], answer: 1, explanation: "외상매출금은 자산 계정입니다." },
@@ -586,6 +985,10 @@
     ];
 
     let state = {
+      settings: {
+        useHelpPopup: true,
+        showExamples: true
+      },
       company: {
         name: "샘플회사",
         ceo: "홍길동",
@@ -597,7 +1000,8 @@
       vatPurchases: [],
       adjustments: [],
       quizAnswers: {},
-      savedAt: null
+      savedAt: null,
+      bookProfit: 0
     };
 
     let selectedQuizIndex = 0;
@@ -635,6 +1039,22 @@
       location.reload();
     }
 
+    function toggleHelpMode() {
+      state.settings.useHelpPopup = document.getElementById("useHelpPopupToggle").checked;
+      saveSilently();
+    }
+
+    function toggleExamples() {
+      state.settings.showExamples = document.getElementById("showExamplesToggle").checked;
+      saveSilently();
+      renderExamplesVisibility();
+    }
+
+    function saveSilently() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      renderMeta();
+    }
+
     function updateCompany() {
       state.company.name = document.getElementById("companyName").value || "샘플회사";
       state.company.ceo = document.getElementById("companyCeo").value || "홍길동";
@@ -648,6 +1068,9 @@
       document.getElementById("companyCeo").value = state.company.ceo;
       document.getElementById("companyBizNo").value = state.company.bizNo;
       document.getElementById("companyYear").value = state.company.year;
+
+      document.getElementById("useHelpPopupToggle").checked = !!state.settings.useHelpPopup;
+      document.getElementById("showExamplesToggle").checked = !!state.settings.showExamples;
 
       document.getElementById("entryDate").value = todayStr();
       document.getElementById("vatSaleDate").value = todayStr();
@@ -676,6 +1099,8 @@
       document.getElementById("selectedLedger").value = accounts[0];
       document.getElementById("adjustmentItem").value = adjustmentSeeds[0].id;
       document.getElementById("adjustmentMemo").value = adjustmentSeeds[0].defaultMemo;
+      document.getElementById("bookProfit").value = state.bookProfit || "";
+
       document.getElementById("adjustmentItem").addEventListener("change", function() {
         const found = adjustmentSeeds.find(x => x.id == this.value);
         document.getElementById("adjustmentMemo").value = found ? found.defaultMemo : "";
@@ -685,10 +1110,16 @@
     function addEntry() {
       const date = document.getElementById("entryDate").value;
       const description = document.getElementById("entryDescription").value.trim();
+      const client = document.getElementById("entryClient").value.trim();
+      const clientBizNo = document.getElementById("entryClientBizNo").value.trim();
       const debit = document.getElementById("entryDebit").value;
       const credit = document.getElementById("entryCredit").value;
       const amount = Number(document.getElementById("entryAmount").value);
       const vatType = document.getElementById("entryVatType").value;
+      const evidenceType = document.getElementById("entryEvidenceType").value;
+      const evidenceNo = document.getElementById("entryEvidenceNo").value.trim();
+      const reviewStatus = document.getElementById("entryReviewStatus").value;
+      const note = document.getElementById("entryNote").value.trim();
 
       if (!description || !amount) {
         alert("적요와 금액을 입력해 주세요.");
@@ -699,14 +1130,25 @@
         id: Date.now(),
         date,
         description,
+        client,
+        clientBizNo,
         debit,
         credit,
         amount,
-        vatType
+        vatType,
+        evidenceType,
+        evidenceNo,
+        reviewStatus,
+        note
       });
 
       document.getElementById("entryDescription").value = "";
+      document.getElementById("entryClient").value = "";
+      document.getElementById("entryClientBizNo").value = "";
       document.getElementById("entryAmount").value = "";
+      document.getElementById("entryEvidenceNo").value = "";
+      document.getElementById("entryNote").value = "";
+      document.getElementById("entryReviewStatus").value = "검토전";
       renderAll();
     }
 
@@ -718,8 +1160,10 @@
     function addVatSale() {
       const date = document.getElementById("vatSaleDate").value;
       const client = document.getElementById("vatSaleClient").value.trim();
+      const bizNo = document.getElementById("vatSaleBizNo").value.trim();
       const supplyAmount = Number(document.getElementById("vatSaleSupply").value);
       const taxAmount = Number(document.getElementById("vatSaleTax").value);
+      const proofType = document.getElementById("vatSaleProofType").value;
 
       if (!client || !supplyAmount || !taxAmount) {
         alert("매출 등록 항목을 모두 입력해 주세요.");
@@ -730,11 +1174,14 @@
         id: Date.now(),
         date,
         client,
+        bizNo,
         supplyAmount,
-        taxAmount
+        taxAmount,
+        proofType
       });
 
       document.getElementById("vatSaleClient").value = "";
+      document.getElementById("vatSaleBizNo").value = "";
       document.getElementById("vatSaleSupply").value = "";
       document.getElementById("vatSaleTax").value = "";
       renderAll();
@@ -748,8 +1195,11 @@
     function addVatPurchase() {
       const date = document.getElementById("vatPurchaseDate").value;
       const vendor = document.getElementById("vatPurchaseVendor").value.trim();
+      const bizNo = document.getElementById("vatPurchaseBizNo").value.trim();
       const supplyAmount = Number(document.getElementById("vatPurchaseSupply").value);
       const taxAmount = Number(document.getElementById("vatPurchaseTax").value);
+      const invoiceReceived = document.getElementById("vatInvoiceReceived").value;
+      const proofType = document.getElementById("vatPurchaseProofType").value;
       const deductible = document.getElementById("vatPurchaseDeductible").value;
       const reason = document.getElementById("vatPurchaseReason").value.trim();
 
@@ -762,17 +1212,22 @@
         id: Date.now(),
         date,
         vendor,
+        bizNo,
         supplyAmount,
         taxAmount,
+        invoiceReceived,
+        proofType,
         deductible,
         reason
       });
 
       document.getElementById("vatPurchaseVendor").value = "";
+      document.getElementById("vatPurchaseBizNo").value = "";
       document.getElementById("vatPurchaseSupply").value = "";
       document.getElementById("vatPurchaseTax").value = "";
       document.getElementById("vatPurchaseReason").value = "";
       document.getElementById("vatPurchaseDeductible").value = "공제";
+      document.getElementById("vatInvoiceReceived").value = "수취";
       renderAll();
     }
 
@@ -784,29 +1239,39 @@
     function addAdjustment() {
       const bookProfit = Number(document.getElementById("bookProfit").value || 0);
       const itemId = Number(document.getElementById("adjustmentItem").value);
-      const amount = Number(document.getElementById("adjustmentAmount").value);
       const disposition = document.getElementById("adjustmentDisposition").value;
+      const opening = Number(document.getElementById("adjustmentOpening").value || 0);
+      const occurrence = Number(document.getElementById("adjustmentOccurrence").value || 0);
+      const reversal = Number(document.getElementById("adjustmentReversal").value || 0);
       const memo = document.getElementById("adjustmentMemo").value.trim();
 
       const found = adjustmentSeeds.find(a => a.id === itemId);
-      if (!found || !amount) {
-        alert("조정항목과 금액을 확인해 주세요.");
+      if (!found) {
+        alert("조정항목을 확인해 주세요.");
         return;
       }
 
       state.bookProfit = bookProfit;
+
+      const ending = opening + occurrence - reversal;
 
       state.adjustments.unshift({
         id: Date.now(),
         section: found.section,
         name: found.name,
         type: found.type,
-        amount,
         disposition,
+        opening,
+        occurrence,
+        reversal,
+        ending,
+        amount: occurrence - reversal,
         memo
       });
 
-      document.getElementById("adjustmentAmount").value = "";
+      document.getElementById("adjustmentOpening").value = "";
+      document.getElementById("adjustmentOccurrence").value = "";
+      document.getElementById("adjustmentReversal").value = "";
       renderAll();
     }
 
@@ -832,14 +1297,22 @@
         map[e.debit].push({
           date: e.date,
           description: e.description,
+          client: e.client || "",
           debit: Number(e.amount),
-          credit: 0
+          credit: 0,
+          evidenceType: e.evidenceType || "",
+          evidenceNo: e.evidenceNo || "",
+          reviewStatus: e.reviewStatus || ""
         });
         map[e.credit].push({
           date: e.date,
           description: e.description,
+          client: e.client || "",
           debit: 0,
-          credit: Number(e.amount)
+          credit: Number(e.amount),
+          evidenceType: e.evidenceType || "",
+          evidenceNo: e.evidenceNo || "",
+          reviewStatus: e.reviewStatus || ""
         });
       });
 
@@ -878,7 +1351,7 @@
     function getAdjustmentSummary() {
       const plus = state.adjustments.filter(a => a.type === "가산").reduce((sum, a) => sum + Number(a.amount), 0);
       const minus = state.adjustments.filter(a => a.type === "차감").reduce((sum, a) => sum + Number(a.amount), 0);
-      const bookProfit = Number(state.bookProfit || document.getElementById("bookProfit")?.value || 0);
+      const bookProfit = Number(state.bookProfit || 0);
       const taxableBase = bookProfit + plus - minus;
       return { plus, minus, bookProfit, taxableBase };
     }
@@ -991,8 +1464,9 @@
         <div class="list-item">
           <div class="list-main">
             <strong>${e.description}</strong><br>
-            ${e.date} · 차변 ${e.debit} / 대변 ${e.credit}<br>
-            ${currency(e.amount)}원 · ${e.vatType}
+            ${e.date} · 거래처 ${e.client || "-"} · 차변 ${e.debit} / 대변 ${e.credit}<br>
+            ${currency(e.amount)}원 · 부가세 ${e.vatType} · 증빙 ${e.evidenceType}${e.evidenceNo ? " / " + e.evidenceNo : ""}<br>
+            검토상태 ${e.reviewStatus}${e.note ? " · 메모 " + e.note : ""}
           </div>
           <button class="btn danger" onclick="deleteEntry(${e.id})">삭제</button>
         </div>
@@ -1011,9 +1485,12 @@
             <tr>
               <th>날짜</th>
               <th>적요</th>
+              <th>거래처</th>
               <th class="right">차변</th>
               <th class="right">대변</th>
               <th class="right">잔액</th>
+              <th>증빙</th>
+              <th>검토</th>
             </tr>
           </thead>
           <tbody>
@@ -1022,11 +1499,14 @@
                 <tr>
                   <td>${r.date}</td>
                   <td>${r.description}</td>
+                  <td>${r.client || "-"}</td>
                   <td class="right">${currency(r.debit)}</td>
                   <td class="right">${currency(r.credit)}</td>
                   <td class="right">${currency(r.balance)}</td>
+                  <td>${r.evidenceType || "-"}${r.evidenceNo ? " / " + r.evidenceNo : ""}</td>
+                  <td>${r.reviewStatus || "-"}</td>
                 </tr>
-              `).join("") : `<tr><td colspan="5">전기 내역이 없습니다.</td></tr>`
+              `).join("") : `<tr><td colspan="8">전기 내역이 없습니다.</td></tr>`
             }
           </tbody>
         </table>
@@ -1079,8 +1559,9 @@
             <div class="list-item">
               <div class="list-main">
                 <strong>${v.client}</strong><br>
-                ${v.date} · 공급가액 ${currency(v.supplyAmount)}원<br>
-                세액 ${currency(v.taxAmount)}원
+                ${v.date} · 사업자번호 ${v.bizNo || "-"}<br>
+                공급가액 ${currency(v.supplyAmount)}원 · 세액 ${currency(v.taxAmount)}원<br>
+                증빙 ${v.proofType}
               </div>
               <button class="btn danger" onclick="deleteVatSale(${v.id})">삭제</button>
             </div>
@@ -1092,10 +1573,12 @@
         ? state.vatPurchases.map(v => `
             <div class="list-item">
               <div class="list-main">
-                <span class="badge ${v.deductible === "공제" ? "" : "gray"}">${v.deductible}</span>
+                <span class="badge ${v.deductible === "공제" ? "green" : "red"}">${v.deductible}</span>
                 <strong>${v.vendor}</strong><br>
-                ${v.date} · 공급가액 ${currency(v.supplyAmount)}원<br>
-                세액 ${currency(v.taxAmount)}원 · 사유 ${v.reason || "-"}
+                ${v.date} · 사업자번호 ${v.bizNo || "-"}<br>
+                공급가액 ${currency(v.supplyAmount)}원 · 세액 ${currency(v.taxAmount)}원<br>
+                수취 ${v.invoiceReceived} · 증빙 ${v.proofType}<br>
+                사유 ${v.reason || "-"}
               </div>
               <button class="btn danger" onclick="deleteVatPurchase(${v.id})">삭제</button>
             </div>
@@ -1104,9 +1587,7 @@
     }
 
     function renderAdjustment() {
-      if (document.getElementById("bookProfit")) {
-        document.getElementById("bookProfit").value = state.bookProfit || "";
-      }
+      document.getElementById("bookProfit").value = state.bookProfit || "";
 
       const adj = getAdjustmentSummary();
       document.getElementById("adjustmentSummary").innerHTML = `
@@ -1123,8 +1604,11 @@
             <tr>
               <th>구분</th>
               <th>항목명</th>
-              <th class="right">금액</th>
               <th>처분</th>
+              <th class="right">기초잔액</th>
+              <th class="right">당기발생</th>
+              <th class="right">당기환입</th>
+              <th class="right">기말잔액</th>
               <th>메모</th>
               <th class="right">관리</th>
             </tr>
@@ -1135,12 +1619,15 @@
                 <tr>
                   <td>${a.section}</td>
                   <td>${a.name}</td>
-                  <td class="right">${currency(a.amount)}</td>
                   <td>${a.disposition}</td>
+                  <td class="right">${currency(a.opening)}</td>
+                  <td class="right">${currency(a.occurrence)}</td>
+                  <td class="right">${currency(a.reversal)}</td>
+                  <td class="right">${currency(a.ending)}</td>
                   <td>${a.memo || ""}</td>
                   <td class="right"><button class="btn danger" onclick="deleteAdjustment(${a.id})">삭제</button></td>
                 </tr>
-              `).join("") : `<tr><td colspan="6">아직 등록된 조정명세가 없습니다.</td></tr>`
+              `).join("") : `<tr><td colspan="9">아직 등록된 조정명세가 없습니다.</td></tr>`
             }
           </tbody>
         </table>
@@ -1193,7 +1680,7 @@
         푼 문제 수: ${solved}문제<br>
         정답 수: ${correct}문제<br>
         오답 수: ${solved - correct}문제<br><br>
-        매일 날짜 기준으로 3문제가 바뀝니다.
+        날짜 기준으로 매일 3문제가 바뀝니다.
       `;
     }
 
@@ -1202,6 +1689,29 @@
       document.getElementById("companyCeoBox").textContent = state.company.ceo;
       document.getElementById("companyYearBox").textContent = state.company.year;
       document.getElementById("savedAtText").textContent = `마지막 저장: ${state.savedAt || "없음"}`;
+    }
+
+    function renderExamplesVisibility() {
+      document.querySelectorAll(".examples-block").forEach(el => {
+        el.style.display = state.settings.showExamples ? "" : "none";
+      });
+    }
+
+    function openHelp(key) {
+      if (!state.settings.useHelpPopup) return;
+      const item = helpTexts[key];
+      if (!item) return;
+      document.getElementById("helpTitle").textContent = item.title;
+      document.getElementById("helpContent").textContent = item.content;
+      document.getElementById("helpModal").classList.add("open");
+    }
+
+    function closeHelp() {
+      document.getElementById("helpModal").classList.remove("open");
+    }
+
+    function closeHelpByBackdrop(event) {
+      if (event.target.id === "helpModal") closeHelp();
     }
 
     function renderAll() {
@@ -1214,6 +1724,7 @@
       renderVat();
       renderAdjustment();
       renderQuiz();
+      renderExamplesVisibility();
     }
 
     function setupNavigation() {
